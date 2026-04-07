@@ -1,0 +1,7 @@
+name: warehouse_env
+description: Warehouse Order Fulfillment RL Environment
+version: 0.1.0
+type: mcp
+entry_point: warehouse_env.server.app:app
+port: 8000
+docker_image: warehouse-env:latest
