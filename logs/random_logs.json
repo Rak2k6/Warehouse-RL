@@ -1,0 +1,902 @@
+[
+  {
+    "episode": 0,
+    "policy": "random",
+    "total_reward": 64.45,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.26,
+    "worker_utilization": 0.4206,
+    "steps": 107
+  },
+  {
+    "episode": 1,
+    "policy": "random",
+    "total_reward": 72.24,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.82,
+    "worker_utilization": 0.5229,
+    "steps": 109
+  },
+  {
+    "episode": 2,
+    "policy": "random",
+    "total_reward": 67.12,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.84,
+    "worker_utilization": 0.5065,
+    "steps": 116
+  },
+  {
+    "episode": 3,
+    "policy": "random",
+    "total_reward": 66.53,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.76,
+    "worker_utilization": 0.4979,
+    "steps": 117
+  },
+  {
+    "episode": 4,
+    "policy": "random",
+    "total_reward": 66.34,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.94,
+    "worker_utilization": 0.4354,
+    "steps": 120
+  },
+  {
+    "episode": 5,
+    "policy": "random",
+    "total_reward": 67.34,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.92,
+    "worker_utilization": 0.4898,
+    "steps": 123
+  },
+  {
+    "episode": 6,
+    "policy": "random",
+    "total_reward": 70.58,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.76,
+    "worker_utilization": 0.5093,
+    "steps": 108
+  },
+  {
+    "episode": 7,
+    "policy": "random",
+    "total_reward": 67.73,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.42,
+    "worker_utilization": 0.5125,
+    "steps": 100
+  },
+  {
+    "episode": 8,
+    "policy": "random",
+    "total_reward": 66.34,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.6,
+    "worker_utilization": 0.3947,
+    "steps": 133
+  },
+  {
+    "episode": 9,
+    "policy": "random",
+    "total_reward": 67.49,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.22,
+    "worker_utilization": 0.4951,
+    "steps": 103
+  },
+  {
+    "episode": 10,
+    "policy": "random",
+    "total_reward": 69.99,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.14,
+    "worker_utilization": 0.5278,
+    "steps": 99
+  },
+  {
+    "episode": 11,
+    "policy": "random",
+    "total_reward": 68.29,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.5,
+    "worker_utilization": 0.5375,
+    "steps": 100
+  },
+  {
+    "episode": 12,
+    "policy": "random",
+    "total_reward": 69.65,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.52,
+    "worker_utilization": 0.4779,
+    "steps": 113
+  },
+  {
+    "episode": 13,
+    "policy": "random",
+    "total_reward": 64.74,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.84,
+    "worker_utilization": 0.5043,
+    "steps": 117
+  },
+  {
+    "episode": 14,
+    "policy": "random",
+    "total_reward": 65.46,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.88,
+    "worker_utilization": 0.4224,
+    "steps": 116
+  },
+  {
+    "episode": 15,
+    "policy": "random",
+    "total_reward": 68.41,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.48,
+    "worker_utilization": 0.498,
+    "steps": 125
+  },
+  {
+    "episode": 16,
+    "policy": "random",
+    "total_reward": 68.52,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.4,
+    "worker_utilization": 0.502,
+    "steps": 126
+  },
+  {
+    "episode": 17,
+    "policy": "random",
+    "total_reward": 68.08,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.5,
+    "worker_utilization": 0.4291,
+    "steps": 127
+  },
+  {
+    "episode": 18,
+    "policy": "random",
+    "total_reward": 67.93,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.26,
+    "worker_utilization": 0.4614,
+    "steps": 110
+  },
+  {
+    "episode": 19,
+    "policy": "random",
+    "total_reward": 69.28,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.4,
+    "worker_utilization": 0.4551,
+    "steps": 117
+  },
+  {
+    "episode": 20,
+    "policy": "random",
+    "total_reward": 67.32,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.84,
+    "worker_utilization": 0.5655,
+    "steps": 103
+  },
+  {
+    "episode": 21,
+    "policy": "random",
+    "total_reward": 68.06,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.54,
+    "worker_utilization": 0.5093,
+    "steps": 108
+  },
+  {
+    "episode": 22,
+    "policy": "random",
+    "total_reward": 66.52,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.08,
+    "worker_utilization": 0.4505,
+    "steps": 111
+  },
+  {
+    "episode": 23,
+    "policy": "random",
+    "total_reward": 69.79,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.94,
+    "worker_utilization": 0.6117,
+    "steps": 94
+  },
+  {
+    "episode": 24,
+    "policy": "random",
+    "total_reward": 70.4,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.46,
+    "worker_utilization": 0.5842,
+    "steps": 101
+  },
+  {
+    "episode": 25,
+    "policy": "random",
+    "total_reward": 65.55,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.96,
+    "worker_utilization": 0.4804,
+    "steps": 115
+  },
+  {
+    "episode": 26,
+    "policy": "random",
+    "total_reward": 69.95,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.28,
+    "worker_utilization": 0.5619,
+    "steps": 97
+  },
+  {
+    "episode": 27,
+    "policy": "random",
+    "total_reward": 68.39,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.66,
+    "worker_utilization": 0.548,
+    "steps": 99
+  },
+  {
+    "episode": 28,
+    "policy": "random",
+    "total_reward": 69.29,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.46,
+    "worker_utilization": 0.4208,
+    "steps": 120
+  },
+  {
+    "episode": 29,
+    "policy": "random",
+    "total_reward": 66.9,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.76,
+    "worker_utilization": 0.5158,
+    "steps": 111
+  },
+  {
+    "episode": 30,
+    "policy": "random",
+    "total_reward": 65.21,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.8,
+    "worker_utilization": 0.3905,
+    "steps": 137
+  },
+  {
+    "episode": 31,
+    "policy": "random",
+    "total_reward": 68.94,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.98,
+    "worker_utilization": 0.4672,
+    "steps": 122
+  },
+  {
+    "episode": 32,
+    "policy": "random",
+    "total_reward": 65.85,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.08,
+    "worker_utilization": 0.5021,
+    "steps": 118
+  },
+  {
+    "episode": 33,
+    "policy": "random",
+    "total_reward": 68.86,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.8,
+    "worker_utilization": 0.401,
+    "steps": 144
+  },
+  {
+    "episode": 34,
+    "policy": "random",
+    "total_reward": 69.54,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.88,
+    "worker_utilization": 0.4825,
+    "steps": 114
+  },
+  {
+    "episode": 35,
+    "policy": "random",
+    "total_reward": 66.95,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.8,
+    "worker_utilization": 0.4434,
+    "steps": 128
+  },
+  {
+    "episode": 36,
+    "policy": "random",
+    "total_reward": 66.99,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.64,
+    "worker_utilization": 0.4545,
+    "steps": 132
+  },
+  {
+    "episode": 37,
+    "policy": "random",
+    "total_reward": 68.97,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.94,
+    "worker_utilization": 0.4622,
+    "steps": 119
+  },
+  {
+    "episode": 38,
+    "policy": "random",
+    "total_reward": 67.64,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.06,
+    "worker_utilization": 0.5668,
+    "steps": 101
+  },
+  {
+    "episode": 39,
+    "policy": "random",
+    "total_reward": 70.3,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.54,
+    "worker_utilization": 0.6733,
+    "steps": 88
+  },
+  {
+    "episode": 40,
+    "policy": "random",
+    "total_reward": 71.28,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.04,
+    "worker_utilization": 0.5971,
+    "steps": 85
+  },
+  {
+    "episode": 41,
+    "policy": "random",
+    "total_reward": 67.46,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.1,
+    "worker_utilization": 0.4977,
+    "steps": 107
+  },
+  {
+    "episode": 42,
+    "policy": "random",
+    "total_reward": 71.09,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.5,
+    "worker_utilization": 0.4549,
+    "steps": 122
+  },
+  {
+    "episode": 43,
+    "policy": "random",
+    "total_reward": 68.34,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.34,
+    "worker_utilization": 0.5386,
+    "steps": 110
+  },
+  {
+    "episode": 44,
+    "policy": "random",
+    "total_reward": 65.08,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.5,
+    "worker_utilization": 0.3864,
+    "steps": 143
+  },
+  {
+    "episode": 45,
+    "policy": "random",
+    "total_reward": 68.61,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.86,
+    "worker_utilization": 0.5405,
+    "steps": 111
+  },
+  {
+    "episode": 46,
+    "policy": "random",
+    "total_reward": 66.96,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.56,
+    "worker_utilization": 0.4391,
+    "steps": 115
+  },
+  {
+    "episode": 47,
+    "policy": "random",
+    "total_reward": 71.42,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.74,
+    "worker_utilization": 0.4872,
+    "steps": 117
+  },
+  {
+    "episode": 48,
+    "policy": "random",
+    "total_reward": 68.63,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.64,
+    "worker_utilization": 0.5663,
+    "steps": 98
+  },
+  {
+    "episode": 49,
+    "policy": "random",
+    "total_reward": 67.19,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.62,
+    "worker_utilization": 0.4567,
+    "steps": 127
+  },
+  {
+    "episode": 50,
+    "policy": "random",
+    "total_reward": 65.5,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.32,
+    "worker_utilization": 0.4887,
+    "steps": 111
+  },
+  {
+    "episode": 51,
+    "policy": "random",
+    "total_reward": 68.28,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.68,
+    "worker_utilization": 0.4727,
+    "steps": 119
+  },
+  {
+    "episode": 52,
+    "policy": "random",
+    "total_reward": 67.72,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.56,
+    "worker_utilization": 0.524,
+    "steps": 104
+  },
+  {
+    "episode": 53,
+    "policy": "random",
+    "total_reward": 67.75,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.8,
+    "worker_utilization": 0.5495,
+    "steps": 101
+  },
+  {
+    "episode": 54,
+    "policy": "random",
+    "total_reward": 70.05,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.1,
+    "worker_utilization": 0.5947,
+    "steps": 103
+  },
+  {
+    "episode": 55,
+    "policy": "random",
+    "total_reward": 68.02,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.24,
+    "worker_utilization": 0.5967,
+    "steps": 106
+  },
+  {
+    "episode": 56,
+    "policy": "random",
+    "total_reward": 71.81,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.14,
+    "worker_utilization": 0.6432,
+    "steps": 96
+  },
+  {
+    "episode": 57,
+    "policy": "random",
+    "total_reward": 69.41,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.52,
+    "worker_utilization": 0.5726,
+    "steps": 117
+  },
+  {
+    "episode": 58,
+    "policy": "random",
+    "total_reward": 68.17,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.94,
+    "worker_utilization": 0.4405,
+    "steps": 126
+  },
+  {
+    "episode": 59,
+    "policy": "random",
+    "total_reward": 68.96,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.78,
+    "worker_utilization": 0.5461,
+    "steps": 103
+  },
+  {
+    "episode": 60,
+    "policy": "random",
+    "total_reward": 64.05,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.84,
+    "worker_utilization": 0.4354,
+    "steps": 120
+  },
+  {
+    "episode": 61,
+    "policy": "random",
+    "total_reward": 68.18,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.38,
+    "worker_utilization": 0.4052,
+    "steps": 124
+  },
+  {
+    "episode": 62,
+    "policy": "random",
+    "total_reward": 69.55,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.38,
+    "worker_utilization": 0.4933,
+    "steps": 112
+  },
+  {
+    "episode": 63,
+    "policy": "random",
+    "total_reward": 67.38,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.8,
+    "worker_utilization": 0.5221,
+    "steps": 113
+  },
+  {
+    "episode": 64,
+    "policy": "random",
+    "total_reward": 68.82,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.86,
+    "worker_utilization": 0.6478,
+    "steps": 93
+  },
+  {
+    "episode": 65,
+    "policy": "random",
+    "total_reward": 68.37,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.08,
+    "worker_utilization": 0.5,
+    "steps": 121
+  },
+  {
+    "episode": 66,
+    "policy": "random",
+    "total_reward": 69.1,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.24,
+    "worker_utilization": 0.4651,
+    "steps": 136
+  },
+  {
+    "episode": 67,
+    "policy": "random",
+    "total_reward": 67.95,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.22,
+    "worker_utilization": 0.5825,
+    "steps": 97
+  },
+  {
+    "episode": 68,
+    "policy": "random",
+    "total_reward": 68.76,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.86,
+    "worker_utilization": 0.5951,
+    "steps": 92
+  },
+  {
+    "episode": 69,
+    "policy": "random",
+    "total_reward": 68.58,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.58,
+    "worker_utilization": 0.5304,
+    "steps": 115
+  },
+  {
+    "episode": 70,
+    "policy": "random",
+    "total_reward": 67.22,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.94,
+    "worker_utilization": 0.4416,
+    "steps": 137
+  },
+  {
+    "episode": 71,
+    "policy": "random",
+    "total_reward": 65.84,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.5,
+    "worker_utilization": 0.4478,
+    "steps": 115
+  },
+  {
+    "episode": 72,
+    "policy": "random",
+    "total_reward": 66.54,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 3.96,
+    "worker_utilization": 0.3404,
+    "steps": 141
+  },
+  {
+    "episode": 73,
+    "policy": "random",
+    "total_reward": 68.41,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.84,
+    "worker_utilization": 0.485,
+    "steps": 117
+  },
+  {
+    "episode": 74,
+    "policy": "random",
+    "total_reward": 67.96,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.62,
+    "worker_utilization": 0.439,
+    "steps": 127
+  },
+  {
+    "episode": 75,
+    "policy": "random",
+    "total_reward": 67.13,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.24,
+    "worker_utilization": 0.575,
+    "steps": 100
+  },
+  {
+    "episode": 76,
+    "policy": "random",
+    "total_reward": 68.35,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.7,
+    "worker_utilization": 0.4722,
+    "steps": 117
+  },
+  {
+    "episode": 77,
+    "policy": "random",
+    "total_reward": 65.16,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.28,
+    "worker_utilization": 0.3553,
+    "steps": 133
+  },
+  {
+    "episode": 78,
+    "policy": "random",
+    "total_reward": 68.97,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.7,
+    "worker_utilization": 0.4241,
+    "steps": 135
+  },
+  {
+    "episode": 79,
+    "policy": "random",
+    "total_reward": 66.35,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.82,
+    "worker_utilization": 0.5043,
+    "steps": 116
+  },
+  {
+    "episode": 80,
+    "policy": "random",
+    "total_reward": 67.57,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.4,
+    "worker_utilization": 0.5438,
+    "steps": 97
+  },
+  {
+    "episode": 81,
+    "policy": "random",
+    "total_reward": 71.63,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.42,
+    "worker_utilization": 0.5631,
+    "steps": 103
+  },
+  {
+    "episode": 82,
+    "policy": "random",
+    "total_reward": 67.85,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.88,
+    "worker_utilization": 0.5548,
+    "steps": 114
+  },
+  {
+    "episode": 83,
+    "policy": "random",
+    "total_reward": 67.64,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.1,
+    "worker_utilization": 0.5216,
+    "steps": 116
+  },
+  {
+    "episode": 84,
+    "policy": "random",
+    "total_reward": 68.81,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.56,
+    "worker_utilization": 0.5069,
+    "steps": 108
+  },
+  {
+    "episode": 85,
+    "policy": "random",
+    "total_reward": 67.71,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.08,
+    "worker_utilization": 0.4828,
+    "steps": 116
+  },
+  {
+    "episode": 86,
+    "policy": "random",
+    "total_reward": 68.72,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.66,
+    "worker_utilization": 0.5227,
+    "steps": 110
+  },
+  {
+    "episode": 87,
+    "policy": "random",
+    "total_reward": 69.0,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.36,
+    "worker_utilization": 0.5859,
+    "steps": 99
+  },
+  {
+    "episode": 88,
+    "policy": "random",
+    "total_reward": 68.77,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.74,
+    "worker_utilization": 0.5332,
+    "steps": 98
+  },
+  {
+    "episode": 89,
+    "policy": "random",
+    "total_reward": 69.33,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.76,
+    "worker_utilization": 0.5577,
+    "steps": 104
+  },
+  {
+    "episode": 90,
+    "policy": "random",
+    "total_reward": 65.76,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.06,
+    "worker_utilization": 0.4432,
+    "steps": 132
+  },
+  {
+    "episode": 91,
+    "policy": "random",
+    "total_reward": 66.3,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.62,
+    "worker_utilization": 0.4745,
+    "steps": 108
+  },
+  {
+    "episode": 92,
+    "policy": "random",
+    "total_reward": 66.5,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.3,
+    "worker_utilization": 0.3487,
+    "steps": 152
+  },
+  {
+    "episode": 93,
+    "policy": "random",
+    "total_reward": 70.07,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.28,
+    "worker_utilization": 0.5575,
+    "steps": 100
+  },
+  {
+    "episode": 94,
+    "policy": "random",
+    "total_reward": 69.73,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.54,
+    "worker_utilization": 0.4467,
+    "steps": 122
+  },
+  {
+    "episode": 95,
+    "policy": "random",
+    "total_reward": 64.82,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.3,
+    "worker_utilization": 0.439,
+    "steps": 123
+  },
+  {
+    "episode": 96,
+    "policy": "random",
+    "total_reward": 69.72,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.42,
+    "worker_utilization": 0.5893,
+    "steps": 98
+  },
+  {
+    "episode": 97,
+    "policy": "random",
+    "total_reward": 68.55,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 5.84,
+    "worker_utilization": 0.595,
+    "steps": 100
+  },
+  {
+    "episode": 98,
+    "policy": "random",
+    "total_reward": 67.74,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 4.32,
+    "worker_utilization": 0.431,
+    "steps": 116
+  },
+  {
+    "episode": 99,
+    "policy": "random",
+    "total_reward": 68.66,
+    "orders_completed": 50,
+    "avg_fulfillment_time": 6.06,
+    "worker_utilization": 0.5158,
+    "steps": 111
+  }
+]

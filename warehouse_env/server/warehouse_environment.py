@@ -24,39 +24,40 @@ from ..envs.warehouse_env import WarehouseOrderFulfillmentEnv
 class WarehouseEnvironment(MCPEnvironment):
     """
     A warehouse order fulfillment environment served via MCP.
-    
+
     Exposes tools:
     - assign_order(order_id): Pick a specific slot from the queue.
     - wait_step(): Advance time without assigning an order.
+
+    Supports scenario modes: normal, rush, low.
     """
 
     def __init__(self, **env_kwargs):
         """Initialize with internal Gym environment and FastMCP tools."""
         self.gym_env = WarehouseOrderFulfillmentEnv(**env_kwargs)
-        
+
         mcp = FastMCP("warehouse_env")
 
         @mcp.tool
         def assign_order(order_id: int) -> dict:
             """
             Assign a specific order from the queue to the next available worker.
-            
+
             Args:
                 order_id: The index (0 to max_queue-1) of the order in the current queue.
-                
+
             Returns:
-                Dictionary with processing results and updated state metrics.
+                Dictionary with processing results, reward breakdown, and updated state.
             """
-            # Perform action and get Gym observation/reward
-            # We map order_id to the Discrete action space
             obs, reward, terminated, truncated, info = self.gym_env.step(order_id)
-            info["status"] = "Order assigned successfully" if reward > 0 else "Invalid assignment / Empty slot"
             return {
                 "reward": float(reward),
                 "observation": obs.tolist(),
                 "terminated": bool(terminated),
                 "truncated": bool(truncated),
-                "info": info
+                "info": info,
+                "decision_reason": info.get("decision_reason", ""),
+                "reward_breakdown": info.get("reward_breakdown", {}),
             }
 
         @mcp.tool
@@ -64,19 +65,21 @@ class WarehouseEnvironment(MCPEnvironment):
             """
             Advance time by 1 tick without assigning any new orders.
             Useful when workers are busy or queue is empty.
-            
+
             Returns:
-                Dictionary with environment response and current metrics.
+                Dictionary with environment response, reward breakdown, and metrics.
             """
-            # Action = max_queue is the "no-op" in our Gym environment
-            obs, reward, terminated, truncated, info = self.gym_env.step(self.gym_env.max_queue)
-            info["status"] = "Time advanced by 1 tick"
+            obs, reward, terminated, truncated, info = self.gym_env.step(
+                self.gym_env.max_queue
+            )
             return {
                 "reward": float(reward),
                 "observation": obs.tolist(),
                 "terminated": bool(terminated),
                 "truncated": bool(truncated),
-                "info": info
+                "info": info,
+                "decision_reason": info.get("decision_reason", ""),
+                "reward_breakdown": info.get("reward_breakdown", {}),
             }
 
         super().__init__(mcp)
@@ -94,14 +97,19 @@ class WarehouseEnvironment(MCPEnvironment):
             episode_id=episode_id or str(uuid4()),
             step_count=0,
         )
-        
+
         return Observation(
             done=False,
             reward=0.0,
             metadata={
                 "status": "ready",
                 "info": info,
-                "description": "Warehouse environment reset. Queue and workers initialized."
+                "mode": self.gym_env.mode,
+                "description": (
+                    "Warehouse environment reset. "
+                    f"Mode: {self.gym_env.mode}. "
+                    "Queue and workers initialized."
+                ),
             },
         )
 
@@ -117,7 +125,9 @@ class WarehouseEnvironment(MCPEnvironment):
         return Observation(
             done=False,
             reward=0.0,
-            metadata={"error": "Direct actions not supported. Use CallToolAction for MCP tools."},
+            metadata={
+                "error": "Direct actions not supported. Use CallToolAction for MCP tools."
+            },
         )
 
     def step(
