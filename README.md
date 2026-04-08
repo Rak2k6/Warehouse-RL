@@ -214,11 +214,16 @@ The `inference.py` script runs an LLM agent across all evaluation tasks.
 
 ### Environment Variables
 
-| Variable       | Description                    | Default                              |
-|----------------|--------------------------------|--------------------------------------|
-| `Groq_API_KEY` | Your Groq API key              | *(required)*                         |
-| `API_BASE_URL` | Groq API base URL              | `https://api.groq.com/openai/v1`     |
-| `MODEL_NAME`   | LLM model name                 | `llama-3.3-70b-versatile`            |
+The system supports both **Groq** and **OpenAI** APIs. It defaults to **Groq** as the primary inference engine because it provides a generous free tier for testing and rapid development while maintaining high performance.
+
+| Variable         | Description                    | Default / Note                        |
+|------------------|--------------------------------|---------------------------------------|
+| `GROQ_API_KEY`   | Your Groq API key              | *(Recommended for testing)*           |
+| `OPENAI_API_KEY` | Your OpenAI API key            | *(Fallback if Groq key is missing)*   |
+| `API_BASE_URL`   | API base URL                   | Auto-selected based on API key        |
+| `MODEL_NAME`     | LLM model name                 | `llama-3.3-70b-versatile`             |
+
+> **Note:** If `GROQ_API_KEY` is provided, the system automatically uses the Groq endpoint. If only `OPENAI_API_KEY` is provided, it seamlessly switches to the OpenAI endpoint.
 
 ### Usage
 

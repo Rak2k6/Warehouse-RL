@@ -28,13 +28,21 @@ def get_llm_client():
         tuple: (client, model_name, api_key) or (None, model_name, "") if no key.
     """
     # Check for API key — support both GROQ_API_KEY and OPENAI_API_KEY
-    api_key = os.environ.get("GROQ_API_KEY", "") or os.environ.get("Groq_API_KEY", "")
-    if not api_key:
-        api_key = os.environ.get("OPENAI_API_KEY", "")
+    groq_key = os.environ.get("GROQ_API_KEY", "") or os.environ.get("Groq_API_KEY", "")
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
 
-    api_base = os.environ.get(
-        "API_BASE_URL", "https://api.groq.com/openai/v1"
-    )
+    # Determine which key and base URL to use
+    if groq_key:
+        api_key = groq_key
+        default_base = "https://api.groq.com/openai/v1"
+    elif openai_key:
+        api_key = openai_key
+        default_base = "https://api.openai.com/v1"
+    else:
+        api_key = ""
+        default_base = "https://api.groq.com/openai/v1"
+
+    api_base = os.environ.get("API_BASE_URL", default_base)
     model_name = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
 
     if not api_key:
