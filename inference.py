@@ -14,10 +14,10 @@ Usage:
   python inference.py
   python inference.py --fallback   # Use heuristic fallback (no API needed)
 
-Logging format:
-  [START] task=<name> seed=<seed> difficulty=<difficulty>
-  [STEP]  step=<n> action=<a> reward=<r> queue_length=<q> decision=<reason>
-  [END]   task=<name> score=<s> steps=<n> orders_completed=<c> avg_ft=<t>
+Logging format (OpenEnv-compliant):
+  [START] task=<name> env=warehouse_rl model=<model>
+  [STEP]  step=<n> action=<a> reward=<r:.2f> done=<true|false> error=<msg|null>
+  [END]   success=<true|false> steps=<n> score=<s> rewards=<r1,r2,...,rn>
 """
 
 from __future__ import annotations
@@ -164,35 +164,52 @@ def run_task(
     task: Task,
     agent,
     verbose: bool = True,
+    model_name: str = "heuristic",
 ) -> tuple[float, list[dict]]:
     """Run an agent on a task across multiple episodes and return the avg score."""
     scores: list[float] = []
     all_logs: list[dict] = []
+    episode_rewards: list[float] = []  # per-episode total rewards for [END] line
 
     for ep in range(task.num_episodes):
         seed = task.seed + ep
         env = WarehouseOrderFulfillmentEnv(seed=seed, **task.env_config)
         obs, info = env.reset(seed=seed)
 
+        # ── OpenEnv-compliant [START] ──────────────────────────────────
         if verbose and ep == 0:
-            print(f"[START] task={task.name} seed={seed} difficulty={task.difficulty}")
+            print(f"[START] task={task.name} env=warehouse_rl model={model_name}")
 
         total_reward = 0.0
         done = False
         step = 0
+        error_msg: Optional[str] = None
+        terminated = False
+        truncated = False
 
-        while not done:
-            action = agent.select_action(env, obs, step)
-            obs, reward, terminated, truncated, info = env.step(action)
-            total_reward += reward
-            done = terminated or truncated
-            step += 1
+        try:
+            while not done:
+                action = agent.select_action(env, obs, step)
+                obs, reward, terminated, truncated, info = env.step(action)
+                total_reward += reward
+                done = terminated or truncated
+                step += 1
 
-            if verbose and ep == 0 and step <= 10:
+                # ── OpenEnv-compliant [STEP] ───────────────────────────
+                if verbose and ep == 0 and step <= 10:
+                    print(
+                        f"[STEP] step={step} action={action} "
+                        f"reward={reward:.2f} done={str(done).lower()} "
+                        f"error=null"
+                    )
+
+        except Exception as exc:
+            error_msg = str(exc)
+            if verbose and ep == 0:
                 print(
-                    f"[STEP] step={step} action={action} "
-                    f"reward={reward:.4f} queue_length={info['queue_length']} "
-                    f"decision={info.get('decision_reason', '')}"
+                    f"[STEP] step={step} action=null "
+                    f"reward=0.00 done=true "
+                    f"error={error_msg}"
                 )
 
         # Build episode result for grading
@@ -213,6 +230,7 @@ def run_task(
 
         score = run_task_grader(task, result)
         scores.append(score)
+        episode_rewards.append(round(total_reward, 2))
 
         all_logs.append({
             "episode": ep,
@@ -224,22 +242,22 @@ def run_task(
             "worker_utilization": result.worker_utilization,
             "total_reward": round(total_reward, 2),
             "steps": step,
+            "error": error_msg,
         })
 
         env.close()
 
-    avg_score = float(np.mean(scores))
+    avg_score = float(np.mean(scores)) if scores else 0.0
+    success = avg_score > 0.0 and all(lg["error"] is None for lg in all_logs)
+    rewards_str = ",".join(f"{r:.2f}" for r in episode_rewards)
 
+    # ── OpenEnv-compliant [END] — always printed ───────────────────────
     if verbose:
-        if all_logs:
-            best = max(all_logs, key=lambda x: x["score"])
-            print(
-                f"[END] task={task.name} score={avg_score:.4f} "
-                f"steps={best['steps']} orders_completed={best['orders_completed']} "
-                f"avg_ft={best['avg_fulfillment_time']:.2f}"
-            )
-        else:
-            print(f"[END] task={task.name} score=0.0000 steps=0 orders_completed=0 avg_ft=0.00")
+        best_steps = max((lg["steps"] for lg in all_logs), default=0)
+        print(
+            f"[END] success={str(success).lower()} steps={best_steps} "
+            f"score={avg_score:.2f} rewards={rewards_str}"
+        )
 
     return avg_score, all_logs
 
@@ -316,7 +334,7 @@ def main():
         print(f"{icon('dash') * 50}")
 
         t0 = time.time()
-        avg_score, logs = run_task(task, agent, verbose=args.verbose)
+        avg_score, logs = run_task(task, agent, verbose=args.verbose, model_name=model_name)
         elapsed = time.time() - t0
 
         all_results["tasks"][task.name] = {

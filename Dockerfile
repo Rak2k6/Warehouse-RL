@@ -31,12 +31,6 @@ RUN pip install --no-cache-dir ./warehouse_env
 # Expose MCP server port (8000 standard, 7860 for HuggingFace Spaces)
 EXPOSE 8000 7860
 
-# Environment variables for inference (override at runtime)
-ARG GROQ_API_KEY
-ENV GROQ_API_KEY=${GROQ_API_KEY}
-ENV API_BASE_URL="https://api.groq.com/openai/v1"
-ENV MODEL_NAME="llama-3.3-70b-versatile"
-ENV OPENAI_API_KEY=""
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

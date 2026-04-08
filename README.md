@@ -260,8 +260,13 @@ docker run warehouse-env python evaluate.py
 
 ### Run Inference with API Key
 
+> **Security Note:** For enhanced security, **never bake your API keys into the `Dockerfile`** via `ENV` or `ARG` commands, as they may be exposed in Docker image history layers. Model and API configurations must be injected strictly at runtime natively using the `-e` tag.
+
 ```bash
-docker run -e Groq_API_KEY="your-key" warehouse-env python inference.py
+docker run -e GROQ_API_KEY="your-secure-key" \
+           -e MODEL_NAME="llama-3.3-70b-versatile" \
+           -e API_BASE_URL="https://api.groq.com/openai/v1" \
+           warehouse-env python inference.py
 ```
 
 ---
@@ -314,6 +319,7 @@ The project is fully containerized and compatible with Hugging Face Spaces.
 ├── inference.py                    # LLM inference via Groq API
 ├── Dockerfile                      # Container build
 ├── requirements.txt                # Docker dependencies
+├── logs/                           # Auto-generated JSON evaluation results
 └── README.md                       # This file
 ```
 
@@ -367,6 +373,14 @@ Plus `info["warning"]` for edge cases:
 "⚠ CONGESTION: 85% capacity!"
 "⚠ Queue is FULL! New orders will be dropped."
 ```
+
+---
+
+## 📄 Logs & Results
+
+Output structured evaluation reports are automatically cleanly written as JSON inside the `logs/` directory:
+- `logs/evaluation_results.json`
+- `logs/inference_results.json` (created after LLM runs)
 
 ---
 

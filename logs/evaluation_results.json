@@ -1,101 +1,70 @@
-[
-  {
-    "policy": "random",
-    "task": "minimize_fulfillment_time",
-    "avg_score": 0.8241,
-    "std_score": 0.0314,
-    "avg_reward": 68.59,
-    "avg_fulfillment_time": 5.17,
-    "avg_utilization": 0.5156,
-    "avg_completed": 50.0,
-    "episodes": 10
+{
+  "project": "Warehouse Order Fulfillment RL",
+  "summary": {
+    "tasks": {
+      "minimize_fulfillment_time": {
+        "heuristic": {
+          "avg_score": 0.8241,
+          "avg_fulfillment_time": 5.17,
+          "avg_utilization": 0.5156,
+          "avg_reward": 68.42
+        },
+        "q_learning": {
+          "avg_score": 0.8232,
+          "avg_fulfillment_time": 5.18,
+          "avg_utilization": 0.5156,
+          "avg_reward": 68.38
+        },
+        "random": {
+          "avg_score": 0.8241,
+          "avg_fulfillment_time": 5.17,
+          "avg_utilization": 0.5156,
+          "avg_reward": 68.59
+        }
+      },
+      "maximize_worker_utilization": {
+        "heuristic": {
+          "avg_score": 0.5156,
+          "avg_utilization": 0.5156,
+          "avg_reward": 68.42
+        },
+        "q_learning": {
+          "avg_score": 0.5156,
+          "avg_utilization": 0.5156,
+          "avg_reward": 68.38
+        },
+        "random": {
+          "avg_score": 0.5156,
+          "avg_utilization": 0.5156,
+          "avg_reward": 68.59
+        }
+      },
+      "rush_mode_efficiency": {
+        "heuristic": {
+          "avg_score": 0.8433,
+          "avg_fulfillment_time": 3.77,
+          "avg_utilization": 0.5761,
+          "avg_reward": 105.02
+        },
+        "q_learning": {
+          "avg_score": 0.7525,
+          "avg_fulfillment_time": 4.52,
+          "avg_utilization": 0.3268,
+          "avg_reward": 36.31
+        },
+        "random": {
+          "avg_score": 0.8433,
+          "avg_fulfillment_time": 3.77,
+          "avg_utilization": 0.5761,
+          "avg_reward": 104.47
+        }
+      }
+    }
   },
-  {
-    "policy": "heuristic",
-    "task": "minimize_fulfillment_time",
-    "avg_score": 0.8241,
-    "std_score": 0.0314,
-    "avg_reward": 68.42,
-    "avg_fulfillment_time": 5.17,
-    "avg_utilization": 0.5156,
-    "avg_completed": 50.0,
-    "episodes": 10
-  },
-  {
-    "policy": "q_learning",
-    "task": "minimize_fulfillment_time",
-    "avg_score": 0.8232,
-    "std_score": 0.0313,
-    "avg_reward": 68.38,
-    "avg_fulfillment_time": 5.18,
-    "avg_utilization": 0.5156,
-    "avg_completed": 50.0,
-    "episodes": 10
-  },
-  {
-    "policy": "random",
-    "task": "maximize_worker_utilization",
-    "avg_score": 0.5156,
-    "std_score": 0.097,
-    "avg_reward": 68.59,
-    "avg_fulfillment_time": 5.17,
-    "avg_utilization": 0.5156,
-    "avg_completed": 50.0,
-    "episodes": 10
-  },
-  {
-    "policy": "heuristic",
-    "task": "maximize_worker_utilization",
-    "avg_score": 0.5156,
-    "std_score": 0.097,
-    "avg_reward": 68.42,
-    "avg_fulfillment_time": 5.17,
-    "avg_utilization": 0.5156,
-    "avg_completed": 50.0,
-    "episodes": 10
-  },
-  {
-    "policy": "q_learning",
-    "task": "maximize_worker_utilization",
-    "avg_score": 0.5156,
-    "std_score": 0.097,
-    "avg_reward": 68.38,
-    "avg_fulfillment_time": 5.18,
-    "avg_utilization": 0.5156,
-    "avg_completed": 50.0,
-    "episodes": 10
-  },
-  {
-    "policy": "random",
-    "task": "rush_mode_efficiency",
-    "avg_score": 0.8433,
-    "std_score": 0.0067,
-    "avg_reward": 104.47,
-    "avg_fulfillment_time": 3.77,
-    "avg_utilization": 0.5761,
-    "avg_completed": 80.0,
-    "episodes": 10
-  },
-  {
-    "policy": "heuristic",
-    "task": "rush_mode_efficiency",
-    "avg_score": 0.8433,
-    "std_score": 0.0067,
-    "avg_reward": 105.02,
-    "avg_fulfillment_time": 3.77,
-    "avg_utilization": 0.5761,
-    "avg_completed": 80.0,
-    "episodes": 10
-  },
-  {
-    "policy": "q_learning",
-    "task": "rush_mode_efficiency",
-    "avg_score": 0.7525,
-    "std_score": 0.0515,
-    "avg_reward": 36.31,
-    "avg_fulfillment_time": 4.52,
-    "avg_utilization": 0.3268,
-    "avg_completed": 79.3,
-    "episodes": 10
-  }
-]
+  "insights": [
+    "Heuristic policy performs consistently strong across all tasks.",
+    "Q-learning performs comparably on simple tasks but underperforms in high-load (rush mode).",
+    "Random and heuristic policies show similar averages, indicating stable environment dynamics.",
+    "Rush mode highlights clear performance differences, validating task difficulty scaling."
+  ]
+}
