@@ -219,11 +219,12 @@ The system supports both **Groq** and **OpenAI** APIs. It defaults to **Groq** a
 | Variable         | Description                    | Default / Note                        |
 |------------------|--------------------------------|---------------------------------------|
 | `GROQ_API_KEY`   | Your Groq API key              | *(Recommended for testing)*           |
-| `OPENAI_API_KEY` | Your OpenAI API key            | *(Fallback if Groq key is missing)*   |
+| `OPENAI_API_KEY` | Your OpenAI API key            | *(Fallback 1)*                        |
+| `HF_TOKEN`       | Your HuggingFace Token         | *(Fallback 2)*                        |
 | `API_BASE_URL`   | API base URL                   | Auto-selected based on API key        |
 | `MODEL_NAME`     | LLM model name                 | `llama-3.3-70b-versatile`             |
 
-> **Note:** If `GROQ_API_KEY` is provided, the system automatically uses the Groq endpoint. If only `OPENAI_API_KEY` is provided, it seamlessly switches to the OpenAI endpoint.
+> **Note:** The provider priority is **GROQ > OPENAI > HF**. If `GROQ_API_KEY` is provided, the system automatically uses the Groq endpoint. If only `OPENAI_API_KEY` is provided, it switches to OpenAI. If only `HF_TOKEN` is found, it uses HuggingFace.
 
 ### Usage
 

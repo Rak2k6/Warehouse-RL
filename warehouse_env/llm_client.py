@@ -8,8 +8,9 @@ by setting environment variables.
 Environment variables:
   GROQ_API_KEY   — API key (checked first)
   OPENAI_API_KEY — Fallback API key
-  API_BASE_URL   — Base URL (default: Groq endpoint)
-  MODEL_NAME     — Model to use (default: llama-3.3-70b-versatile)
+  HF_TOKEN       — HuggingFace Token (optional)
+  API_BASE_URL   — Base URL
+  MODEL_NAME     — Model to use
 """
 
 from __future__ import annotations
@@ -27,26 +28,36 @@ def get_llm_client():
     Returns:
         tuple: (client, model_name, api_key) or (None, model_name, "") if no key.
     """
-    # Check for API key — support both GROQ_API_KEY and OPENAI_API_KEY
+    # Check for API key — support GROQ_API_KEY, OPENAI_API_KEY, and HF_TOKEN
     groq_key = os.environ.get("GROQ_API_KEY", "") or os.environ.get("Groq_API_KEY", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
+    hf_token = os.environ.get("HF_TOKEN", "")
 
-    # Determine which key and base URL to use
+    # Priority: GROQ > OPENAI > HF
     if groq_key:
         api_key = groq_key
         default_base = "https://api.groq.com/openai/v1"
+        provider = "Groq"
     elif openai_key:
         api_key = openai_key
         default_base = "https://api.openai.com/v1"
+        provider = "OpenAI"
+    elif hf_token:
+        api_key = hf_token
+        default_base = "https://api-inference.huggingface.co/v1"
+        provider = "HuggingFace"
     else:
         api_key = ""
         default_base = "https://api.groq.com/openai/v1"
+        provider = "None"
 
     api_base = os.environ.get("API_BASE_URL", default_base)
     model_name = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
 
     if not api_key:
         return None, model_name, ""
+
+    print(f"    [INFO] Using LLM provider: {provider}")
 
     try:
         from openai import OpenAI

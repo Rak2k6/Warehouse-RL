@@ -31,6 +31,11 @@ from typing import Any, Optional
 
 import numpy as np
 
+# ── Environment Variables (Strict OpenEnv Compliance) ───────────────
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
 from warehouse_env.envs.warehouse_env import WarehouseOrderFulfillmentEnv
 from warehouse_env.models import EpisodeResult
 from warehouse_env.tasks import TASKS, Task, run_task_grader
