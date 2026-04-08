@@ -1,3 +1,12 @@
+---
+title: Warehouse RL
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_file: app.py
+pinned: false
+---
 # 🏭 Warehouse Order Fulfillment — RL Environment (OpenEnv)
 
 > An OpenAI Gym-compatible reinforcement learning environment with **MCP Server** support,
