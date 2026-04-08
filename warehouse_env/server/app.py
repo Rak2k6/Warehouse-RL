@@ -21,7 +21,7 @@ app = create_app(
 def main():
     """Start-up script for direct execution."""
     print("🚀 Starting Warehouse RL Server on http://0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
+    port = int(os.environ.get("PORT", 7860))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 if __name__ == "__main__":
     main()
