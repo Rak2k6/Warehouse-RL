@@ -4,6 +4,7 @@ Exposes the WarehouseEnvironment over HTTP/WebSocket MCP endpoints.
 """
 
 import uvicorn
+import os
 from openenv.core.env_server.http_server import create_app
 from openenv.core.env_server.mcp_types import CallToolAction, CallToolObservation
 
