@@ -23,10 +23,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy package files
 COPY warehouse_env/ ./warehouse_env/
-COPY train.py test.py evaluate.py inference.py README.md ./
+COPY pyproject.toml train.py test.py evaluate.py inference.py README.md openenv.yaml ./
 
-# Install the package (with openenv-core from git)
-RUN pip install --no-cache-dir ./warehouse_env
+# Install the package from the root directory
+RUN pip install --no-cache-dir .
 
 # Expose MCP server port (8000 standard, 7860 for HuggingFace Spaces)
 EXPOSE 8000 7860

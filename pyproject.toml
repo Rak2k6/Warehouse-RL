@@ -5,8 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "warehouse-order-fulfillment"
 version = "1.0.0"
-description = "Warehouse Order Fulfillment RL Environment for OpenEnv"
+description = "Warehouse Order Fulfillment RL Environment for OpenEnv (Hackathon Submission)"
+readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
 dependencies = [
     "openenv-core[core] @ git+https://github.com/meta-pytorch/OpenEnv.git@v0.2.3",
     "fastapi>=0.115.0",
@@ -17,12 +19,12 @@ dependencies = [
     "numpy>=1.24.0",
     "fastmcp>=0.1.0",
     "groq>=0.4.0",
+    "openai>=1.0.0",
 ]
 
 [project.scripts]
-server = "warehouse_env.server.app:main"
+warehouse-server = "warehouse_env.server.app:main"
 
 [tool.setuptools]
 include-package-data = true
 packages = ["warehouse_env", "warehouse_env.envs", "warehouse_env.server"]
-package-dir = { "warehouse_env" = "." }
