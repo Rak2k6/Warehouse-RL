@@ -27,4 +27,4 @@ server = "server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["warehouse_env", "warehouse_env.envs", "warehouse_env.models", "warehouse_env.tasks", "server"]
+packages = ["warehouse_env", "warehouse_env.envs", "warehouse_env.tasks", "server"]
