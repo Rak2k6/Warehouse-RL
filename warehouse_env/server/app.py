@@ -18,7 +18,10 @@ app = create_app(
     CallToolObservation, 
     env_name="warehouse_env"
 )
-
+@app.get("/")
+def root():
+    return {"message": "Warehouse RL OpenEnv is running 🚀"}
+    
 def main():
     """Start-up script for direct execution."""
     print("🚀 Starting Warehouse RL Server on http://0.0.0.0:7860")
