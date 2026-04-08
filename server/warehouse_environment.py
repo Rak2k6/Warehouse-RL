@@ -18,8 +18,8 @@ except ImportError:
     from openenv.core.env_server.mcp_environment import MCPEnvironment
     from openenv.core.env_server.types import Action, Observation, State
 
-from ..envs.warehouse_env import WarehouseOrderFulfillmentEnv
-from ..models import WarehouseState
+from warehouse_env.envs.warehouse_env import WarehouseOrderFulfillmentEnv
+from warehouse_env.models import WarehouseState
 
 
 class WarehouseEnvironment(MCPEnvironment):

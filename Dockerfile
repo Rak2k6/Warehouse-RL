@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy package files
 COPY warehouse_env/ ./warehouse_env/
-COPY pyproject.toml train.py test.py evaluate.py inference.py README.md openenv.yaml ./
+COPY server/ ./server/
+COPY pyproject.toml uv.lock train.py test.py evaluate.py inference.py README.md openenv.yaml ./
 
 # Install the package from the root directory
 RUN pip install --no-cache-dir .
@@ -37,4 +38,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
 # Default: start the MCP server
-CMD ["python", "-m", "warehouse_env.server.app"]
+CMD ["python", "-m", "server.app"]

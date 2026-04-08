@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.scripts]
-warehouse-server = "warehouse_env.server.app:main"
+server = "server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["warehouse_env", "warehouse_env.envs", "warehouse_env.server"]
+packages = ["warehouse_env", "warehouse_env.envs", "warehouse_env.models", "warehouse_env.tasks", "server"]

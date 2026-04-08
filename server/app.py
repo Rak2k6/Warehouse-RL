@@ -8,7 +8,7 @@ import os
 from openenv.core.env_server.http_server import create_app
 from openenv.core.env_server.mcp_types import CallToolAction, CallToolObservation
 
-from .warehouse_environment import WarehouseEnvironment
+from server.warehouse_environment import WarehouseEnvironment
 
 # Create the app instance.
 # env_name="warehouse_env" is used for the MCP tool prefix

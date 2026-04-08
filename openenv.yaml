@@ -6,7 +6,7 @@ description: >
   and maximizing worker utilization under dynamic demand.
 version: 1.0.0
 type: mcp
-entry_point: warehouse_env.server.app:app
+entry_point: server.app:app
 port: 8000
 docker_image: warehouse-env:latest
 
