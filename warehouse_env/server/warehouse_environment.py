@@ -19,6 +19,7 @@ except ImportError:
     from openenv.core.env_server.types import Action, Observation, State
 
 from ..envs.warehouse_env import WarehouseOrderFulfillmentEnv
+from ..models import WarehouseState
 
 
 class WarehouseEnvironment(MCPEnvironment):
@@ -50,6 +51,7 @@ class WarehouseEnvironment(MCPEnvironment):
                 Dictionary with processing results, reward breakdown, and updated state.
             """
             obs, reward, terminated, truncated, info = self.gym_env.step(order_id)
+            self._state.step_count += 1
             return {
                 "reward": float(reward),
                 "observation": obs.tolist(),
@@ -72,6 +74,7 @@ class WarehouseEnvironment(MCPEnvironment):
             obs, reward, terminated, truncated, info = self.gym_env.step(
                 self.gym_env.max_queue
             )
+            self._state.step_count += 1
             return {
                 "reward": float(reward),
                 "observation": obs.tolist(),
@@ -137,10 +140,37 @@ class WarehouseEnvironment(MCPEnvironment):
         **kwargs: Any,
     ) -> Observation:
         """Expose step with state tracking."""
-        self._state.step_count += 1
         return super().step(action, timeout_s=timeout_s, **kwargs)
 
     @property
     def state(self) -> State:
         """Return current episode and step info."""
         return self._state
+
+    def get_full_state(self) -> WarehouseState:
+        """Return full internal state as a Pydantic model.
+
+        This provides the complete environment snapshot for debugging,
+        grading, and the OpenEnv state() specification.
+        """
+        internal = self.gym_env.get_state()
+        return WarehouseState(
+            episode_id=self._state.episode_id,
+            step_count=self._state.step_count,
+            mode=internal["mode"],
+            worker_busy=internal["worker_busy"],
+            worker_work_time=internal["worker_work_time"],
+            queue_proc_time=internal["queue_proc_time"],
+            queue_wait_time=internal["queue_wait_time"],
+            queue_priority=internal["queue_priority"],
+            total_orders_generated=internal["total_orders_generated"],
+            orders_completed=internal["orders_completed"],
+            priority_orders_completed=internal["priority_orders_completed"],
+            total_fulfillment_time=internal["total_fulfillment_time"],
+            total_wait_time=internal["total_wait_time"],
+            cumulative_reward=internal["cumulative_reward"],
+            num_workers=internal["num_workers"],
+            max_queue=internal["max_queue"],
+            max_orders=internal["max_orders"],
+            max_steps=internal["max_steps"],
+        )

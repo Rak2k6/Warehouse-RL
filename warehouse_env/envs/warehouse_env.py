@@ -164,6 +164,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         self.total_fulfillment_time = 0.0
         self.total_wait_time = 0.0
         self._cumulative_reward = 0.0
+        self._queue_overflow_count = 0
 
         # Metrics
         self._metrics = {
@@ -281,6 +282,9 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
                         self._np_random.random() < self.priority_prob
                     )
                     self.total_orders_generated += 1
+                else:
+                    # Queue full — order dropped
+                    self._queue_overflow_count += 1
 
         # ------ 4. Penalties ------
         # Recompute pending mask after compaction and new arrivals
@@ -394,6 +398,32 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
             return output
         elif self.render_mode == "human":
             print(output)
+
+    def state(self) -> dict:
+        """Return a full snapshot of the internal environment state.
+
+        Used by the OpenEnv state() API for debugging and grading.
+        """
+        return {
+            "step_count": self.current_step,
+            "mode": self.mode,
+            "worker_busy": self.worker_busy.tolist(),
+            "worker_work_time": self.worker_work_time.tolist(),
+            "queue_proc_time": self.queue_proc_time.tolist(),
+            "queue_wait_time": self.queue_wait_time.tolist(),
+            "queue_priority": self.queue_priority.tolist(),
+            "total_orders_generated": self.total_orders_generated,
+            "orders_completed": self.orders_completed,
+            "priority_orders_completed": self.priority_orders_completed,
+            "total_fulfillment_time": float(self.total_fulfillment_time),
+            "total_wait_time": float(self.total_wait_time),
+            "cumulative_reward": float(self._cumulative_reward),
+            "num_workers": self.num_workers,
+            "max_queue": self.max_queue,
+            "max_orders": self.max_orders,
+            "max_steps": self.max_steps,
+            "queue_overflow_count": getattr(self, "_queue_overflow_count", 0),
+        }
 
     def close(self):
         pass

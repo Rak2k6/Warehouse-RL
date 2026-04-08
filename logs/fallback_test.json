@@ -1,0 +1,123 @@
+{
+  "agent": "llm/llama-3.3-70b-versatile",
+  "tasks": {
+    "minimize_fulfillment_time": {
+      "difficulty": "easy",
+      "avg_score": 0.8241,
+      "episodes": 10,
+      "elapsed_s": 0.9,
+      "logs": [
+        {
+          "episode": 0,
+          "seed": 42,
+          "score": 0.8467,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 4.760000228881836,
+          "worker_utilization": 0.4855,
+          "total_reward": 68.12,
+          "steps": 121
+        },
+        {
+          "episode": 1,
+          "seed": 43,
+          "score": 0.84,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 4.880000114440918,
+          "worker_utilization": 0.3804,
+          "total_reward": 67.92,
+          "steps": 140
+        },
+        {
+          "episode": 2,
+          "seed": 44,
+          "score": 0.7978,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 5.639999866485596,
+          "worker_utilization": 0.5625,
+          "total_reward": 68.47,
+          "steps": 104
+        },
+        {
+          "episode": 3,
+          "seed": 45,
+          "score": 0.7833,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 5.900000095367432,
+          "worker_utilization": 0.5657,
+          "total_reward": 68.11,
+          "steps": 99
+        },
+        {
+          "episode": 4,
+          "seed": 46,
+          "score": 0.8367,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 4.940000057220459,
+          "worker_utilization": 0.5275,
+          "total_reward": 68.54,
+          "steps": 100
+        },
+        {
+          "episode": 5,
+          "seed": 47,
+          "score": 0.8589,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 4.539999961853027,
+          "worker_utilization": 0.3708,
+          "total_reward": 67.94,
+          "steps": 149
+        },
+        {
+          "episode": 6,
+          "seed": 48,
+          "score": 0.8578,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 4.559999942779541,
+          "worker_utilization": 0.4932,
+          "total_reward": 66.11,
+          "steps": 111
+        },
+        {
+          "episode": 7,
+          "seed": 49,
+          "score": 0.8244,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 5.159999847412109,
+          "worker_utilization": 0.4884,
+          "total_reward": 68.19,
+          "steps": 129
+        },
+        {
+          "episode": 8,
+          "seed": 50,
+          "score": 0.76,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 6.320000171661377,
+          "worker_utilization": 0.7317,
+          "total_reward": 71.67,
+          "steps": 82
+        },
+        {
+          "episode": 9,
+          "seed": 51,
+          "score": 0.8356,
+          "orders_completed": 50,
+          "orders_generated": 50,
+          "avg_fulfillment_time": 4.960000038146973,
+          "worker_utilization": 0.5505,
+          "total_reward": 69.17,
+          "steps": 104
+        }
+      ]
+    }
+  }
+}

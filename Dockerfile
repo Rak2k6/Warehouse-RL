@@ -1,28 +1,46 @@
 # ─── Warehouse Order Fulfillment RL Environment ────────────
 # Build : docker build -t warehouse-env .
 # Run   : docker run -p 8000:8000 warehouse-env
+# Test  : docker run warehouse-env python test.py
+# Eval  : docker run warehouse-env python evaluate.py
 # ────────────────────────────────────────────────────────────
 
 FROM python:3.11-slim
 
 LABEL maintainer="Rakesh"
-LABEL description="Warehouse Order Fulfillment RL Environment (MCP Server)"
+LABEL description="Warehouse Order Fulfillment RL Environment (OpenEnv MCP Server)"
+LABEL tags="openenv,reinforcement-learning,warehouse"
 
 WORKDIR /app
 
 # Install git (needed for openenv-core from github)
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy package files
 COPY warehouse_env/ ./warehouse_env/
-COPY train.py test.py README.md ./
+COPY train.py test.py evaluate.py inference.py README.md ./
 
-# Install the package and its dependencies
+# Install the package (with openenv-core from git)
 RUN pip install --no-cache-dir ./warehouse_env
 
-# Expose MCP server port
-EXPOSE 8000
+# Expose MCP server port (8000 standard, 7860 for HuggingFace Spaces)
+EXPOSE 8000 7860
+
+# Environment variables for inference (override at runtime)
+ARG GROQ_API_KEY
+ENV GROQ_API_KEY=${GROQ_API_KEY}
+ENV API_BASE_URL="https://api.groq.com/openai/v1"
+ENV MODEL_NAME="llama-3.3-70b-versatile"
+ENV OPENAI_API_KEY=""
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
 # Default: start the MCP server
-# Use --host 0.0.0.0 to allow external connections
 CMD ["python", "-m", "warehouse_env.server.app"]

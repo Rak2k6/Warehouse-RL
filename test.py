@@ -22,6 +22,7 @@ import numpy as np
 # Package imports
 from warehouse_env.envs.warehouse_env import WarehouseOrderFulfillmentEnv
 from warehouse_env.client import WarehouseEnv
+from warehouse_env.utils import ensure_utf8_stdout
 
 
 def test_gym_api():
@@ -397,6 +398,8 @@ def main():
         help="Scenario mode for demo episode"
     )
     args = parser.parse_args()
+
+    ensure_utf8_stdout()
 
     print("\n+----------------------------------------------------------+")
     print("  Warehouse Order Fulfillment - Test Suite              ")

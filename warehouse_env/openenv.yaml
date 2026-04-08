@@ -1,7 +1,45 @@
 name: warehouse_env
-description: Warehouse Order Fulfillment RL Environment
-version: 0.1.0
+description: >
+  Warehouse Order Fulfillment RL Environment — an OpenAI Gym-compatible
+  reinforcement learning environment where an agent optimizes assignment
+  of incoming orders to warehouse workers, minimizing fulfillment time
+  and maximizing worker utilization under dynamic demand.
+version: 1.0.0
 type: mcp
 entry_point: warehouse_env.server.app:app
 port: 8000
 docker_image: warehouse-env:latest
+
+models:
+  action: warehouse_env.models:WarehouseAction
+  observation: warehouse_env.models:WarehouseObservation
+  reward: warehouse_env.models:WarehouseReward
+  state: warehouse_env.models:WarehouseState
+
+tasks:
+  - name: minimize_fulfillment_time
+    difficulty: easy
+    description: Minimize average order fulfillment time across all orders.
+    grader: warehouse_env.tasks:grade_fulfillment_time
+    max_steps: 200
+
+  - name: maximize_worker_utilization
+    difficulty: medium
+    description: Maximize average worker utilization (busy-time / total-time).
+    grader: warehouse_env.tasks:grade_worker_utilization
+    max_steps: 200
+
+  - name: rush_mode_efficiency
+    difficulty: hard
+    description: >
+      Handle high-load rush mode efficiently. Composite score based on
+      completion rate, speed, and utilization under 70% order arrival rate.
+    grader: warehouse_env.tasks:grade_rush_mode
+    max_steps: 300
+
+tags:
+  - openenv
+  - reinforcement-learning
+  - warehouse
+  - operations-research
+  - order-fulfillment

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "warehouse-order-fulfillment"
-version = "0.1.0"
+version = "1.0.0"
 description = "Warehouse Order Fulfillment RL Environment for OpenEnv"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,7 +15,8 @@ dependencies = [
     "requests>=2.31.0",
     "gymnasium>=0.29.0",
     "numpy>=1.24.0",
-    "fastmcp>=0.1.0"
+    "fastmcp>=0.1.0",
+    "groq>=0.4.0",
 ]
 
 [project.scripts]

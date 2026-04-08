@@ -29,6 +29,7 @@ from pathlib import Path
 
 import numpy as np
 from warehouse_env.envs.warehouse_env import WarehouseOrderFulfillmentEnv
+from warehouse_env.utils import ensure_utf8_stdout, icon
 
 
 # -- Helpers ---------------------------------------------------------------
@@ -322,15 +323,15 @@ def print_summary(label: str, logs: list[dict]):
     completed = [l["orders_completed"] for l in logs]
     ft = [l["avg_fulfillment_time"] for l in logs]
     util = [l["worker_utilization"] for l in logs]
-    print("\u2500" * 60)
+    print("-" * 60)
     print(f"  {label}")
-    print("\u2500" * 60)
+    print("-" * 60)
     print(f"  Episodes         : {len(logs)}")
     print(f"  Avg Reward       : {np.mean(rewards):>8.2f} +/- {np.std(rewards):.2f}")
     print(f"  Avg Completed    : {np.mean(completed):>8.1f} +/- {np.std(completed):.1f}")
     print(f"  Avg Fulfill Time : {np.mean(ft):>8.2f} +/- {np.std(ft):.2f}")
     print(f"  Avg Utilization  : {np.mean(util)*100:>7.1f}%")
-    print("\u2500" * 60)
+    print("-" * 60)
 
 
 def print_comparison_table(
@@ -359,29 +360,29 @@ def print_comparison_table(
     q_util = avg(q_logs, "worker_utilization")
 
     print()
-    print("\u2554" + "\u2550" * 68 + "\u2557")
-    print("\u2551" + "  POLICY COMPARISON".center(68) + "\u2551")
-    print("\u2560" + "\u2550" * 68 + "\u2563")
-    print(f"\u2551  {'Metric':<25} {'Random':>10} {'Heuristic':>10} {'Q-Learn':>10} {'Best':>8}  \u2551")
-    print("\u2551  " + "\u2500" * 64 + "  \u2551")
+    print("=" * 70)
+    print("  POLICY COMPARISON".center(70))
+    print("=" * 70)
+    print(f"  {'Metric':<25} {'Random':>10} {'Heuristic':>10} {'Q-Learn':>10} {'Best':>8}")
+    print("  " + "-" * 64)
 
     # Reward (higher is better)
     best_rew = "Q" if q_rew >= h_rew and q_rew >= r_rew else ("H" if h_rew >= r_rew else "R")
-    print(f"\u2551  {'Avg Reward':<25} {r_rew:>10.2f} {h_rew:>10.2f} {q_rew:>10.2f} {best_rew:>8}  \u2551")
+    print(f"  {'Avg Reward':<25} {r_rew:>10.2f} {h_rew:>10.2f} {q_rew:>10.2f} {best_rew:>8}")
 
     # Fulfillment time (lower is better)
     best_ft = "Q" if q_ft <= h_ft and q_ft <= r_ft else ("H" if h_ft <= r_ft else "R")
-    print(f"\u2551  {'Avg Fulfill Time':<25} {r_ft:>10.2f} {h_ft:>10.2f} {q_ft:>10.2f} {best_ft:>8}  \u2551")
+    print(f"  {'Avg Fulfill Time':<25} {r_ft:>10.2f} {h_ft:>10.2f} {q_ft:>10.2f} {best_ft:>8}")
 
     # Completed (higher is better)
     best_comp = "Q" if q_comp >= h_comp and q_comp >= r_comp else ("H" if h_comp >= r_comp else "R")
-    print(f"\u2551  {'Avg Completed':<25} {r_comp:>10.1f} {h_comp:>10.1f} {q_comp:>10.1f} {best_comp:>8}  \u2551")
+    print(f"  {'Avg Completed':<25} {r_comp:>10.1f} {h_comp:>10.1f} {q_comp:>10.1f} {best_comp:>8}")
 
     # Utilization (higher is better)
     best_util = "Q" if q_util >= h_util and q_util >= r_util else ("H" if h_util >= r_util else "R")
-    print(f"\u2551  {'Avg Utilization':<25} {r_util*100:>9.1f}% {h_util*100:>9.1f}% {q_util*100:>9.1f}% {best_util:>8}  \u2551")
+    print(f"  {'Avg Utilization':<25} {r_util*100:>9.1f}% {h_util*100:>9.1f}% {q_util*100:>9.1f}% {best_util:>8}")
 
-    print("\u255a" + "\u2550" * 68 + "\u255d")
+    print("=" * 70)
     print("  Legend: R=Random, H=Heuristic(SPT), Q=Q-Learning")
     print()
 
@@ -389,6 +390,8 @@ def print_comparison_table(
 # -- Main ------------------------------------------------------------------
 
 def main():
+    ensure_utf8_stdout()
+
     parser = argparse.ArgumentParser(
         description="Train RL agents on the Warehouse Order Fulfillment Environment"
     )
@@ -417,9 +420,9 @@ def main():
         seed=args.seed,
     )
 
-    print("\u2554" + "\u2550" * 58 + "\u2557")
-    print("\u2551" + "  Warehouse Order Fulfillment - RL Training".center(58) + "\u2551")
-    print("\u255a" + "\u2550" * 58 + "\u255d")
+    print("=" * 60)
+    print("  Warehouse Order Fulfillment - RL Training".center(60))
+    print("=" * 60)
     print(f"  Workers: {env.num_workers}  |  Max Queue: {env.max_queue}  |  "
           f"Max Orders: {env.max_orders}")
     print(f"  Mode: {args.mode.upper()}  |  Episodes: {args.episodes}  |  Seed: {args.seed}")
@@ -428,21 +431,21 @@ def main():
     print()
 
     # ---------- 1. Random baseline ----------
-    print("\u25b6 Training Random Policy Baseline ...")
+    print(f"{icon('arrow')} Training Random Policy Baseline ...")
     t0 = time.time()
     random_logs = run_random_policy(env, args.episodes, rng, render=args.render)
     print(f"  Done in {time.time()-t0:.1f}s")
     print_summary("Random Policy (Training)", random_logs)
 
     # ---------- 2. Heuristic (SPT) baseline ----------
-    print("\n\u25b6 Running Heuristic (SPT + Priority) Policy ...")
+    print(f"\n{icon('arrow')} Running Heuristic (SPT + Priority) Policy ...")
     t0 = time.time()
     heuristic_logs = run_heuristic_policy(env, args.episodes, rng, render=args.render)
     print(f"  Done in {time.time()-t0:.1f}s")
     print_summary("Heuristic SPT (Training)", heuristic_logs)
 
     # ---------- 3. Q-Learning ----------
-    print("\n\u25b6 Training Q-Learning Agent ...")
+    print(f"\n{icon('arrow')} Training Q-Learning Agent ...")
     t0 = time.time()
     q_logs, Q_table = run_q_learning(
         env, args.episodes, rng, render=args.render
@@ -451,7 +454,7 @@ def main():
     print_summary("Q-Learning (Training)", q_logs)
 
     # ---------- 4. Evaluation ----------
-    print("\n\u25b6 Evaluating Learned Q-Policy (greedy) ...")
+    print(f"\n{icon('arrow')} Evaluating Learned Q-Policy (greedy) ...")
     eval_logs = evaluate_q_policy(env, Q_table, args.eval_episodes, rng)
     print_summary("Q-Learning (Greedy Eval)", eval_logs)
 
@@ -473,10 +476,10 @@ def main():
         json.dump(q_logs, f, indent=2)
     with open(log_dir / "eval_logs.json", "w") as f:
         json.dump(eval_logs, f, indent=2)
-    print(f"  \U0001f4c1 Logs saved to {log_dir.resolve()}/")
+    print(f"  {icon('folder')} Logs saved to {log_dir.resolve()}/")
 
     env.close()
-    print("\n\u2705 Training complete.")
+    print(f"\n{icon('check')} Training complete.")
 
 
 if __name__ == "__main__":
