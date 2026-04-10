@@ -170,6 +170,7 @@ Respond with ONLY a single integer representing your chosen action."""
         return get_heuristic_action(obs, W, Q)
 
 @app.get("/")
+@app.get("/health")
 def health_check():
     """Returns HF Spaces compatible health check"""
     return {"status": "ok", "mode": "llm" if not api_disabled else "heuristic"}
