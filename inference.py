@@ -1,375 +1,215 @@
-"""
-Inference Script — Warehouse Order Fulfillment Environment
-============================================================
-Runs an LLM-based agent (via OpenAI-compatible API / Groq) across all
-defined tasks and outputs structured, reproducible scores.
-
-Environment variables:
-  API_BASE_URL   — API base URL (default: https://api.groq.com/openai/v1)
-  MODEL_NAME     — Model to use (default: llama-3.3-70b-versatile)
-  GROQ_API_KEY   — Your Groq API key
-  OPENAI_API_KEY — Or your OpenAI API key (fallback)
-
-Usage:
-  python inference.py
-  python inference.py --fallback   # Use heuristic fallback (no API needed)
-
-Logging format (OpenEnv-compliant):
-  [START] task=<name> env=warehouse_rl model=<model>
-  [STEP]  step=<n> action=<a> reward=<r:.2f> done=<true|false> error=<msg|null>
-  [END]   success=<true|false> steps=<n> score=<s> rewards=<r1,r2,...,rn>
-"""
-
-from __future__ import annotations
-
-import argparse
-import json
 import os
 import sys
-import time
-from typing import Any, Optional
+import json
+import asyncio
+import traceback
+from typing import Any, List, Optional
 
 import numpy as np
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-# ── Environment Variables (Strict OpenEnv Compliance) ───────────────
+# ── Environment Variables ───────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-from warehouse_env.envs.warehouse_env import WarehouseOrderFulfillmentEnv
-from warehouse_env.models import EpisodeResult
-from warehouse_env.tasks import TASKS, Task, run_task_grader
-from warehouse_env.utils import ensure_utf8_stdout, icon
-from warehouse_env.llm_client import (
-    get_llm_client,
-    llm_chat,
-    parse_action,
-    random_valid_action,
-)
+try:
+    from warehouse_env.llm_client import get_llm_client, llm_chat, parse_action
+except ImportError:
+    # Graceful fallback if the user forgets to install dependencies
+    print("[CRITICAL] Failed to import internal warehouse logic. Assuming extreme fallback mode.")
+    def get_llm_client(): return None, "fallback", ""
+    def llm_chat(*args, **kwargs): return None
+    def parse_action(*args, **kwargs): return None
 
+# FastAPI Application
+app = FastAPI(title="Warehouse RL Inference Service", version="1.0.0")
 
-# ── LLM Agent (OpenAI-compatible) ───────────────────────────────────
+# Context State
+client = None
+model_name_deployed = MODEL_NAME
+api_disabled = False
 
-class LLMAgent:
-    """Agent that uses an OpenAI-compatible API to select actions."""
+@app.on_event("startup")
+def init_client():
+    global client, model_name_deployed, api_disabled
+    try:
+        c, m, k = get_llm_client()
+        client = c
+        model_name_deployed = m
+        if not c:
+            print("[WARN] LLM Client not initialized (no API Key). Using heuristic fallback mode.")
+            api_disabled = True
+    except Exception as e:
+        print(f"[ERROR] Failed to init LLM client: {e}")
+        api_disabled = True
 
-    def __init__(self, client, model_name: str):
-        self.client = client
-        self.model_name = model_name
-        self.api_disabled = False  # Stateful fallback if API fails
+def extract_state(obs: list[float], W: int = 4, Q: int = 20):
+    """Extracts state arrays from the flat observation."""
+    try:
+        offset = 1
+        worker_busy = obs[offset : offset + W]
+        offset += W
+        worker_util = obs[offset : offset + W]
+        offset += W
+        queue_proc = obs[offset : offset + Q]
+        offset += Q
+        queue_wait = obs[offset : offset + Q]
+        offset += Q
+        queue_prio = obs[offset : offset + Q]
+        return worker_busy, worker_util, queue_proc, queue_wait, queue_prio
+    except Exception:
+        return [0]*W, [0]*W, [0]*Q, [0]*Q, [0]*Q
 
-    def select_action(
-        self,
-        env: WarehouseOrderFulfillmentEnv,
-        obs: np.ndarray,
-        step: int,
-    ) -> int:
-        """Ask the LLM to select an action given current state."""
-        # ---- Efficiency & Fallback Checks ----
-        valid_actions = [i for i in range(env.max_queue) if env.queue_proc_time[i] > 0]
-        valid_actions.append(env.max_queue)  # no-op
+def get_heuristic_action(obs: list[float], W: int = 4, Q: int = 20) -> int:
+    """Fastest-first + Priority heuristic."""
+    try:
+        _, _, queue_proc, _, queue_prio = extract_state(obs, W, Q)
+        valid = [i for i, p in enumerate(queue_proc) if p > 0]
+        if not valid:
+            return 0  # explicit action safe-fallback
+        return min(valid, key=lambda x: (-queue_prio[x], queue_proc[x]))
+    except Exception as e:
+        print(f"[ERROR] Heuristic fallback failed: {e}")
+        return 0
 
-        # 1. Permanent fallback if API already failed once this session
-        if self.api_disabled:
-            return self._heuristic_fallback(env)
-
-        # 2. Skip LLM if no decision is needed (only 1 valid action)
+def get_llm_action_sync(obs: list[float], W: int = 4, Q: int = 20) -> int:
+    """Synchronous LLM fetching logic."""
+    global api_disabled
+    if api_disabled or client is None:
+        return get_heuristic_action(obs, W, Q)
+        
+    try:
+        worker_busy, worker_util, queue_proc, queue_wait, queue_prio = extract_state(obs, W, Q)
+        
+        valid_actions = [i for i, p in enumerate(queue_proc) if p > 0]
+        valid_actions.append(Q) # Include fallback as valid
+        
         if len(valid_actions) <= 1:
-            return self._heuristic_fallback(env)
-
-        # Build a concise state description
+            return get_heuristic_action(obs, W, Q)
+            
         queue_items = []
-        for i in range(env.max_queue):
-            if env.queue_proc_time[i] > 0:
-                prio = " [PRIORITY]" if env.queue_priority[i] > 0.5 else ""
+        for i in range(Q):
+            if queue_proc[i] > 0:
+                prio = " [PRIORITY]" if queue_prio[i] > 0.5 else ""
                 queue_items.append(
-                    f"  slot {i}: proc_time={env.queue_proc_time[i]:.0f}, "
-                    f"wait={env.queue_wait_time[i]:.0f}{prio}"
+                    f"  slot {i}: proc_time={queue_proc[i]*8:.1f}, wait={queue_wait[i]*200:.0f}{prio}"
                 )
-
+                
         workers = []
-        for i in range(env.num_workers):
-            status = f"busy({env.worker_busy[i]:.0f}t)" if env.worker_busy[i] > 0 else "idle"
-            util = env.worker_work_time[i] / max(env.current_step, 1)
-            workers.append(f"  W{i}: {status}, utilization={util:.1%}")
-
+        for i in range(W):
+            status = f"busy({worker_busy[i]*16:.1f}t)" if worker_busy[i] > 0 else "idle"
+            workers.append(f"  W{i}: {status}, util={worker_util[i]:.1%}")
+            
         queue_str = "\n".join(queue_items) if queue_items else "  (empty)"
         worker_str = "\n".join(workers)
+        
+        prompt = f"""You are an AI controlling a warehouse.
 
-        prompt = f"""You are an AI agent controlling a warehouse order fulfillment system.
-
-CURRENT STATE (step {step}/{env.max_steps}):
-- Orders completed: {env.orders_completed}/{env.total_orders_generated}
-- Queue ({len(queue_items)}/{env.max_queue} slots used):
+CURRENT STATE:
+- Queue ({len(queue_items)}/{Q} slots used):
 {queue_str}
 - Workers:
 {worker_str}
 
 VALID ACTIONS: {valid_actions}
-- Actions 0-{env.max_queue-1}: Assign order at that queue slot to the least-busy worker
-- Action {env.max_queue}: Wait/no-op (skip this turn)
+- Actions 0-{Q-1}: Assign order at that queue slot to least-busy worker
+- Action {Q}: Wait/no-op
 
-GOAL: Minimize fulfillment time and maximize worker utilization.
+GOAL: Minimize fulfillment time & maximize worker utilization.
 STRATEGY: Prefer priority orders first, then shortest processing time.
-If all workers are very busy and queue has short orders, it may be better to wait.
 
 Respond with ONLY a single integer representing your chosen action. Nothing else."""
 
-        # Use centralized LLM call with try/except built in
-        text = llm_chat(
-            self.client, self.model_name, prompt,
-            temperature=0.0, max_tokens=10,
-        )
+        # Attempt LLM call
+        text = llm_chat(client, model_name_deployed, prompt, temperature=0.0, max_tokens=10)
         action = parse_action(text, valid_actions)
         if action is not None:
             return action
+            
+        print("[WARN] Invalid LLM response, permanently falling back to heuristic.")
+        api_disabled = True
+        return get_heuristic_action(obs, W, Q)
+        
+    except Exception as e:
+        print(f"[ERROR] LLM prediction sync block failed: {e}")
+        api_disabled = True
+        return get_heuristic_action(obs, W, Q)
 
-        # If LLM failed (text is None), enter permanent fallback mode for this run
-        if text is None:
-            print(f"    [INFO] Permanently switching to heuristic fallback for this task run.")
-            self.api_disabled = True
+@app.get("/")
+def health_check():
+    """Returns HF Spaces compatible health check"""
+    return {"status": "ok", "mode": "llm" if not api_disabled else "heuristic"}
 
-        return self._heuristic_fallback(env)
+@app.post("/predict")
+async def predict_action(request: Request):
+    """Predict standard OpenEnv action given an observation (Max call time ≤ 1.5s)."""
+    global api_disabled
+    fallback_action = 20  # Safe fallback action
+    print(f"[INFO] Using LLM: {not api_disabled}")
 
-    def _heuristic_fallback(self, env: WarehouseOrderFulfillmentEnv) -> int:
-        """Fastest-first heuristic when LLM fails."""
-        valid = np.where(env.queue_proc_time > 0)[0]
-        if len(valid) == 0:
-            return env.max_queue
-        # Priority first, then shortest processing time
-        priorities = env.queue_priority[valid]
-        proc_times = env.queue_proc_time[valid]
-        sort_keys = np.column_stack((-priorities, proc_times))
-        best_idx = valid[np.lexsort((sort_keys[:, 1], sort_keys[:, 0]))[0]]
-        return int(best_idx)
-
-
-class HeuristicAgent:
-    """Deterministic heuristic agent (SPT + priority). No API needed."""
-
-    def select_action(
-        self,
-        env: WarehouseOrderFulfillmentEnv,
-        obs: np.ndarray,
-        step: int,
-    ) -> int:
-        valid = np.where(env.queue_proc_time > 0)[0]
-        if len(valid) == 0:
-            return env.max_queue
-        priorities = env.queue_priority[valid]
-        proc_times = env.queue_proc_time[valid]
-        sort_keys = np.column_stack((-priorities, proc_times))
-        best_idx = valid[np.lexsort((sort_keys[:, 1], sort_keys[:, 0]))[0]]
-        return int(best_idx)
-
-
-# ── Run a single task ────────────────────────────────────────────────
-
-def run_task(
-    task: Task,
-    agent,
-    verbose: bool = True,
-    model_name: str = "heuristic",
-) -> tuple[float, list[dict]]:
-    """Run an agent on a task across multiple episodes and return the avg score."""
-    scores: list[float] = []
-    all_logs: list[dict] = []
-    episode_rewards: list[float] = []  # per-episode total rewards for [END] line
-
-    for ep in range(task.num_episodes):
-        seed = task.seed + ep
-        env = WarehouseOrderFulfillmentEnv(seed=seed, **task.env_config)
-        obs, info = env.reset(seed=seed)
-
-        # ── OpenEnv-compliant [START] ──────────────────────────────────
-        if verbose and ep == 0:
-            print(f"[START] task={task.name} env=warehouse_rl model={model_name}")
-
-        total_reward = 0.0
-        done = False
-        step = 0
-        error_msg: Optional[str] = None
-        terminated = False
-        truncated = False
-
+    try:
+        # ---- Safe Request Parsing Core Requirement ----
+        # Do not use await request.json() to prevent framework HTTP 400 framework crashes
         try:
-            while not done:
-                action = agent.select_action(env, obs, step)
-                obs, reward, terminated, truncated, info = env.step(action)
-                total_reward += reward
-                done = terminated or truncated
-                step += 1
+            raw_body = await request.body()
+        except Exception:
+            raw_body = b""
+            
+        try:
+            body_text = raw_body.decode('utf-8')
+            data = json.loads(body_text) if body_text else {}
+        except Exception:
+            data = {}
+            
+        # Extract observation robustly
+        obs = None
+        if isinstance(data, dict):
+            obs = data.get("observation", data.get("obs"))
+        elif isinstance(data, list):
+            obs = data
+            
+        # Coerce/Validate format
+        if isinstance(obs, np.ndarray):
+            obs = obs.tolist()
+            
+        if not isinstance(obs, list):
+            return JSONResponse(content={"action": fallback_action})
+            
+        # If API is already disabled, bypass wrapper
+        if api_disabled:
+            action = get_heuristic_action(obs)
+            return JSONResponse(content={"action": int(action)})
 
-                # ── OpenEnv-compliant [STEP] ───────────────────────────
-                if verbose and ep == 0 and step <= 10:
-                    print(
-                        f"[STEP] step={step} action={action} "
-                        f"reward={reward:.2f} done={str(done).lower()} "
-                        f"error=null"
-                    )
-
-        except Exception as exc:
-            error_msg = str(exc)
-            if verbose and ep == 0:
-                print(
-                    f"[STEP] step={step} action=null "
-                    f"reward=0.00 done=true "
-                    f"error={error_msg}"
-                )
-
-        # Build episode result for grading
-        summary = info.get("episode_summary", {})
-        result = EpisodeResult(
-            orders_completed=summary.get("orders_completed", env.orders_completed),
-            orders_generated=summary.get("orders_generated", env.total_orders_generated),
-            priority_orders_completed=summary.get("priority_completed", env.priority_orders_completed),
-            avg_fulfillment_time=summary.get("avg_fulfillment_time", 0.0),
-            worker_utilization=summary.get("worker_utilization", 0.0),
-            total_reward=summary.get("total_reward", total_reward),
-            steps=step,
-            mode=task.env_config.get("mode", "normal"),
-            terminated=terminated,
-            truncated=truncated,
-            queue_overflow_count=getattr(env, "_queue_overflow_count", 0),
-        )
-
-        score = run_task_grader(task, result)
-        scores.append(score)
-        episode_rewards.append(round(total_reward, 2))
-
-        all_logs.append({
-            "episode": ep,
-            "seed": seed,
-            "score": score,
-            "orders_completed": result.orders_completed,
-            "orders_generated": result.orders_generated,
-            "avg_fulfillment_time": result.avg_fulfillment_time,
-            "worker_utilization": result.worker_utilization,
-            "total_reward": round(total_reward, 2),
-            "steps": step,
-            "error": error_msg,
-        })
-
-        env.close()
-
-    avg_score = float(np.mean(scores)) if scores else 0.0
-    success = avg_score > 0.0 and all(lg["error"] is None for lg in all_logs)
-    rewards_str = ",".join(f"{r:.2f}" for r in episode_rewards)
-
-    # ── OpenEnv-compliant [END] — always printed ───────────────────────
-    if verbose:
-        best_steps = max((lg["steps"] for lg in all_logs), default=0)
-        print(
-            f"[END] success={str(success).lower()} steps={best_steps} "
-            f"score={avg_score:.2f} rewards={rewards_str}"
-        )
-
-    return avg_score, all_logs
-
-
-# ── Main ─────────────────────────────────────────────────────────────
+        # ---- LLM Timeout Enforcement Requirement ----
+        # Enforce strict 1.4s maximum timeframe, else drop out to heuristics 
+        try:
+            action = await asyncio.wait_for(
+                asyncio.to_thread(get_llm_action_sync, obs), 
+                timeout=1.4
+            )
+        except asyncio.TimeoutError:
+            print("[WARN] LLM API Timeout exceeded 1.4s! Disabling LLM for session.")
+            api_disabled = True
+            action = get_heuristic_action(obs)
+        except Exception as e:
+            print(f"[WARN] LLM Thread error: {e}. Disabling LLM for session.")
+            api_disabled = True
+            action = get_heuristic_action(obs)
+            
+        return JSONResponse(content={"action": int(action)})
+        
+    except Exception as e:
+        print(f"[CRITICAL] Unhandled endpoint error caught gracefully: {e}")
+        traceback.print_exc()
+        return JSONResponse(content={"action": fallback_action})
 
 def main():
-    ensure_utf8_stdout()
-
-    parser = argparse.ArgumentParser(
-        description="Run inference on the Warehouse RL environment"
-    )
-    parser.add_argument(
-        "--fallback", action="store_true",
-        help="Use heuristic agent instead of LLM API"
-    )
-    parser.add_argument(
-        "--task", type=str, default=None,
-        help="Run a specific task (by name). Default: all tasks."
-    )
-    parser.add_argument(
-        "--verbose", action="store_true", default=True,
-        help="Print step-by-step logs"
-    )
-    parser.add_argument(
-        "--output", type=str, default="logs/inference_results.json",
-        help="Path to save results JSON"
-    )
-    args = parser.parse_args()
-
-    # ── Determine agent via centralized LLM client ──
-    client, model_name, api_key = get_llm_client()
-
-    if args.fallback or client is None:
-        if client is None and not args.fallback:
-            print("[INFO] No API key set (GROQ_API_KEY / OPENAI_API_KEY). "
-                  "Falling back to heuristic agent.")
-        agent = HeuristicAgent()
-        agent_name = "heuristic"
-    else:
-        print(f"[INFO] Using LLM API: model={model_name}")
-        agent = LLMAgent(client=client, model_name=model_name)
-        agent_name = f"llm/{model_name}"
-
-    # ── Select tasks ──
-    if args.task:
-        tasks = [t for t in TASKS if t.name == args.task]
-        if not tasks:
-            print(f"[ERROR] Task '{args.task}' not found. Available: {[t.name for t in TASKS]}")
-            sys.exit(1)
-    else:
-        tasks = TASKS
-
-    if not tasks:
-        print("[INFO] No tasks to run.")
-        return
-
-    # ── Run ──
-    print()
-    print("=" * 60)
-    print(f"  Warehouse RL {icon('dash')} Inference ({agent_name})")
-    print("=" * 60)
-    print()
-
-    all_results: dict[str, Any] = {
-        "agent": agent_name,
-        "tasks": {},
-    }
-
-    for task in tasks:
-        print(f"\n{icon('dash') * 50}")
-        print(f"  Task: {task.name} ({task.difficulty})")
-        print(f"  {task.description}")
-        print(f"{icon('dash') * 50}")
-
-        t0 = time.time()
-        avg_score, logs = run_task(task, agent, verbose=args.verbose, model_name=model_name)
-        elapsed = time.time() - t0
-
-        all_results["tasks"][task.name] = {
-            "difficulty": task.difficulty,
-            "avg_score": round(avg_score, 4),
-            "episodes": len(logs),
-            "elapsed_s": round(elapsed, 1),
-            "logs": logs,
-        }
-
-        print(f"  {icon('arrow')} Avg Score: {avg_score:.4f}  ({elapsed:.1f}s)")
-
-    # ── Summary table ──
-    print()
-    print("=" * 60)
-    print("  INFERENCE RESULTS".center(60))
-    print("=" * 60)
-    print(f"  {'Task':<35} {'Difficulty':<10} {'Score':>8}")
-    print("  " + "-" * 54)
-    for task in tasks:
-        tr = all_results["tasks"][task.name]
-        print(f"  {task.name:<35} {tr['difficulty']:<10} {tr['avg_score']:>8.4f}")
-    print("=" * 60)
-
-    # ── Save results ──
-    os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
-    with open(args.output, "w") as f:
-        json.dump(all_results, f, indent=2)
-    print(f"\n  {icon('folder')} Results saved to {args.output}")
-
+    print("🚀 Starting Inference Service on 0.0.0.0:7860...")
+    # Bound explicitly to 7860 for compliance
+    uvicorn.run(app, host="0.0.0.0", port=7860, log_level="warning")
 
 if __name__ == "__main__":
     main()
