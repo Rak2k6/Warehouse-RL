@@ -4,8 +4,15 @@ import json
 import asyncio
 import traceback
 from typing import Any, List, Optional
+from contextlib import asynccontextmanager
 
-import numpy as np
+# Delay heavy imports so startup never crashes
+np = None
+try:
+    import numpy as np
+except Exception as e:
+    print(f"[WARN] numpy not available: {e}. Coercion will use fallback lists.")
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -15,36 +22,60 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-try:
-    from warehouse_env.llm_client import get_llm_client, llm_chat, parse_action
-except ImportError:
-    # Graceful fallback if the user forgets to install dependencies
-    print("[CRITICAL] Failed to import internal warehouse logic. Assuming extreme fallback mode.")
-    def get_llm_client(): return None, "fallback", ""
-    def llm_chat(*args, **kwargs): return None
-    def parse_action(*args, **kwargs): return None
+# Dummy definitions
+def default_llm_chat(*args, **kwargs): return None
+def default_parse_action(*args, **kwargs): return None
 
-# FastAPI Application
-app = FastAPI(title="Warehouse RL Inference Service", version="1.0.0")
-
-# Context State
 client = None
 model_name_deployed = MODEL_NAME
 api_disabled = False
+llm_chat = default_llm_chat
+parse_action = default_parse_action
 
-@app.on_event("startup")
-def init_client():
-    global client, model_name_deployed, api_disabled
+def safe_import_llm():
     try:
-        c, m, k = get_llm_client()
-        client = c
-        model_name_deployed = m
-        if not c:
-            print("[WARN] LLM Client not initialized (no API Key). Using heuristic fallback mode.")
+        from warehouse_env.llm_client import get_llm_client as glc, llm_chat as lc, parse_action as pa
+        return glc, lc, pa
+    except Exception as e:
+        print(f"[WARN] LLM module unavailable → fallback mode. Reason: {e}")
+        def dummy_get(): return None, "fallback", ""
+        return dummy_get, default_llm_chat, default_parse_action
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global client, model_name_deployed, api_disabled, llm_chat, parse_action
+
+    # 🚨 FORCE SAFE MODE IN HF
+    if os.getenv("SPACE_ID"):
+        print("[INFO] HF detected → disabling LLM for stability")
+        client = None
+        api_disabled = True
+        yield
+        return
+
+    try:
+        get_llm, chat_fn, parse_fn = safe_import_llm()
+
+        if get_llm is None:
             api_disabled = True
+        else:
+            c, m, _ = get_llm()
+            client = c
+            model_name_deployed = m
+            llm_chat = chat_fn
+            parse_action = parse_fn
+
+            if client is None:
+                api_disabled = True
+
     except Exception as e:
         print(f"[ERROR] Failed to init LLM client: {e}")
         api_disabled = True
+    
+    yield
+
+# FastAPI Application
+app = FastAPI(title="Warehouse RL Inference Service", version="1.0.0", lifespan=lifespan)
 
 def extract_state(obs: list[float], W: int = 4, Q: int = 20):
     """Extracts state arrays from the flat observation."""
@@ -69,11 +100,11 @@ def get_heuristic_action(obs: list[float], W: int = 4, Q: int = 20) -> int:
         _, _, queue_proc, _, queue_prio = extract_state(obs, W, Q)
         valid = [i for i, p in enumerate(queue_proc) if p > 0]
         if not valid:
-            return 0  # explicit action safe-fallback
+            return Q  # explicit action safe-fallback
         return min(valid, key=lambda x: (-queue_prio[x], queue_proc[x]))
     except Exception as e:
         print(f"[ERROR] Heuristic fallback failed: {e}")
-        return 0
+        return Q
 
 def get_llm_action_sync(obs: list[float], W: int = 4, Q: int = 20) -> int:
     """Synchronous LLM fetching logic."""
@@ -95,13 +126,13 @@ def get_llm_action_sync(obs: list[float], W: int = 4, Q: int = 20) -> int:
             if queue_proc[i] > 0:
                 prio = " [PRIORITY]" if queue_prio[i] > 0.5 else ""
                 queue_items.append(
-                    f"  slot {i}: proc_time={queue_proc[i]*8:.1f}, wait={queue_wait[i]*200:.0f}{prio}"
+                    f"  slot {i}: proc_time={float(queue_proc[i])*8:.1f}, wait={float(queue_wait[i])*200:.0f}{prio}"
                 )
                 
         workers = []
         for i in range(W):
-            status = f"busy({worker_busy[i]*16:.1f}t)" if worker_busy[i] > 0 else "idle"
-            workers.append(f"  W{i}: {status}, util={worker_util[i]:.1%}")
+            status = f"busy({float(worker_busy[i])*16:.1f}t)" if float(worker_busy[i]) > 0 else "idle"
+            workers.append(f"  W{i}: {status}, util={float(worker_util[i]):.1%}")
             
         queue_str = "\n".join(queue_items) if queue_items else "  (empty)"
         worker_str = "\n".join(workers)
@@ -121,7 +152,7 @@ VALID ACTIONS: {valid_actions}
 GOAL: Minimize fulfillment time & maximize worker utilization.
 STRATEGY: Prefer priority orders first, then shortest processing time.
 
-Respond with ONLY a single integer representing your chosen action. Nothing else."""
+Respond with ONLY a single integer representing your chosen action."""
 
         # Attempt LLM call
         text = llm_chat(client, model_name_deployed, prompt, temperature=0.0, max_tokens=10)
@@ -146,13 +177,14 @@ def health_check():
 @app.post("/predict")
 async def predict_action(request: Request):
     """Predict standard OpenEnv action given an observation (Max call time ≤ 1.5s)."""
+    import time
+    start_time = time.time()
+    
     global api_disabled
     fallback_action = 20  # Safe fallback action
-    print(f"[INFO] Using LLM: {not api_disabled}")
 
     try:
         # ---- Safe Request Parsing Core Requirement ----
-        # Do not use await request.json() to prevent framework HTTP 400 framework crashes
         try:
             raw_body = await request.body()
         except Exception:
@@ -171,10 +203,13 @@ async def predict_action(request: Request):
         elif isinstance(data, list):
             obs = data
             
-        # Coerce/Validate format
-        if isinstance(obs, np.ndarray):
-            obs = obs.tolist()
-            
+        # Coerce/Validate format safely
+        if np is not None and isinstance(obs, np.ndarray):
+            try:
+                obs = obs.tolist()
+            except Exception:
+                pass
+                
         if not isinstance(obs, list):
             return JSONResponse(content={"action": fallback_action})
             
@@ -184,7 +219,6 @@ async def predict_action(request: Request):
             return JSONResponse(content={"action": int(action)})
 
         # ---- LLM Timeout Enforcement Requirement ----
-        # Enforce strict 1.4s maximum timeframe, else drop out to heuristics 
         try:
             action = await asyncio.wait_for(
                 asyncio.to_thread(get_llm_action_sync, obs), 
@@ -199,17 +233,25 @@ async def predict_action(request: Request):
             api_disabled = True
             action = get_heuristic_action(obs)
             
+        if time.time() - start_time > 2:
+            return JSONResponse(content={"action": fallback_action})
+            
         return JSONResponse(content={"action": int(action)})
         
     except Exception as e:
         print(f"[CRITICAL] Unhandled endpoint error caught gracefully: {e}")
-        traceback.print_exc()
-        return JSONResponse(content={"action": fallback_action})
+        try:
+            traceback.print_exc()
+        except:
+            pass
+        return JSONResponse(content={"action": 20})
 
 def main():
     print("🚀 Starting Inference Service on 0.0.0.0:7860...")
-    # Bound explicitly to 7860 for compliance
-    uvicorn.run(app, host="0.0.0.0", port=7860, log_level="warning")
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=7860, log_level="warning")
+    except Exception as e:
+        print(f"[CRITICAL] Uvicorn failed to start: {e}")
 
 if __name__ == "__main__":
     main()
