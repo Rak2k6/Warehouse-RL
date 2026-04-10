@@ -13,8 +13,8 @@ LABEL tags="openenv,reinforcement-learning,warehouse"
 
 WORKDIR /app
 
-# Install git (needed for openenv-core from github)
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+# Install git (needed for openenv) and curl (for healthchecks)
+RUN apt-get update && apt-get install -y --no-install-recommends git curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better Docker layer caching
@@ -29,12 +29,11 @@ COPY pyproject.toml uv.lock train.py test.py evaluate.py inference.py README.md 
 # Install the package from the root directory
 RUN pip install --no-cache-dir .
 
-# Expose HuggingFace Spaces port
-EXPOSE 7860
+# Expose MCP server port (8000 standard, 7860 for HuggingFace Spaces)
+EXPOSE 8000 7860
 
-# Health check (matches the inference.py service port)
+# Simple curl-based fallback healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:7860/')" || exit 1
-
-# Default: start the inference service (the agent)
-CMD ["python", "inference.py"]
+    CMD curl -f http://localhost:8000/ || curl -f http://localhost:7860/ || exit 1
+# Default: start the MCP server
+CMD ["python", "-m", "server.app"]

@@ -4,7 +4,7 @@ emoji: 🚀
 colorFrom: blue
 colorTo: green
 sdk: docker
-app_file: app.py
+app_file: inference.py
 pinned: false
 ---
 # 🏭 Warehouse Order Fulfillment — RL Environment (OpenEnv)
