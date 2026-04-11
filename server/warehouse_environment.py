@@ -95,18 +95,18 @@ class WarehouseEnvironment(MCPEnvironment):
         # or embed it in Observation for MCP
         return Observation(
             done=False,
-        reward=0.0,
-        metadata={
-            "observation": obs_vec.tolist(),  # ← ADD THIS
-            "status": "ready",
-            "info": info,
-            "mode": self.gym_env.mode,
-            "description": (
-                f"Warehouse environment reset. Mode: {self.gym_env.mode}. "
-                "Queue and workers initialized."
-            ),
-        },
-    )
+            reward=0.0,
+            metadata={
+                "observation": obs_vec.tolist(),
+                "status": "ready",
+                "info": info,
+                "mode": self.gym_env.mode,
+                "description": (
+                    f"Warehouse environment reset. Mode: {self.gym_env.mode}. "
+                    "Queue and workers initialized."
+                ),
+            },
+        )
 
     def _step_impl(self, action: Action, timeout_s=None, **kwargs) -> Observation:
         # Extract integer action from CallToolAction or raw int
@@ -130,16 +130,16 @@ class WarehouseEnvironment(MCPEnvironment):
                 "decision_reason": info.get("decision_reason", ""),
                 "reward_breakdown": info.get("reward_breakdown", {}),
             },
-    )
+        )
 
     # DELETE this entire method from WarehouseEnvironment:
    # def step(self, action, timeout_s=None, **kwargs):
         #return super().step(action, timeout_s=timeout_s, **kwargs)
 
     @property
-    def state(self) -> State:
-        """Return current episode and step info."""
-        return self._state
+    def state(self):
+        """Return current episode and full step info."""
+        return self.get_full_state()
 
     def get_full_state(self) -> WarehouseState:
         """Return full internal state as a Pydantic model.
@@ -148,7 +148,7 @@ class WarehouseEnvironment(MCPEnvironment):
         grading, and the OpenEnv state() specification.
         """
         try:
-            internal = self.gym_env.get_full_state_dict()
+            internal = self.gym_env.state()
             return WarehouseState(
                 episode_id=self._state.episode_id,
                 step_count=self._state.step_count,
