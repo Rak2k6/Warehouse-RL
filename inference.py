@@ -9,7 +9,7 @@ def main():
         # Debug Logs
         api_base = os.environ.get("API_BASE_URL")
         api_key = os.environ.get("API_KEY")
-        model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
+        model_name = os.environ["MODEL_NAME"]
         
         print(f"DEBUG: API_BASE_URL: {api_base}")
         print(f"DEBUG: API_KEY exists: {bool(api_key)}")
@@ -18,15 +18,11 @@ def main():
         print("[START] task=warehouse env=openenv model=baseline")
 
         # Support Dual Mode: Initialize client only if env vars exist
-        client = None
-        if api_base and api_key:
-            client = OpenAI(
-                base_url=api_base,
-                api_key=api_key
-            )
-        else:
-            print("WARNING: LLM environment variables missing. Falling back to heuristic defaults.")
-
+        # 🔥 FORCE client creation
+        client = OpenAI(
+            base_url=os.environ.get("API_BASE_URL"),
+            api_key=os.environ.get("API_KEY")
+        )
         res = requests.post(f"{BASE_URL}/reset", json={})
         data = res.json()
 
@@ -34,24 +30,27 @@ def main():
         done = False
         step = 0
         rewards = []
-
+        
         while not done and step < 50:
             action = 0
-            
-            # Safe LLM Call
-            if client:
-                try:
-                    prompt = f"Observation: {obs}. What is the next action? Reply with a single integer."
-                    response = client.chat.completions.create(
-                        model=model_name,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0
-                    )
-                    action = int(response.choices[0].message.content.strip())
-                except Exception as e:
-                    print(f"DEBUG: LLM Call failed: {e}")
-                    action = 0
 
+            # ✅ FIX: define prompt
+            prompt = f"Warehouse state: {obs}. Return ONLY an integer action."
+
+            try:
+                # ✅ Force LLM call attempt
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0
+                )
+
+                action = int(response.choices[0].message.content.strip())
+
+            except Exception as e:
+                print(f"DEBUG: LLM failed: {e}")
+                action = 0
+        
             res = requests.post(
                 f"{BASE_URL}/step",
                 json={"action": action}
@@ -59,11 +58,7 @@ def main():
             data = res.json()
 
             # Update observation for the next prompt if available
-            if "observation" in data:
-                obs = data["observation"]
-            elif "metadata" in data and "observation" in data["metadata"]:
-                obs = data["metadata"]["observation"]
-
+            obs = data.get("metadata", {}).get("observation", [])
             reward = data.get("reward", 0.0)
             done = data.get("done", False)
 
