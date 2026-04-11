@@ -117,7 +117,7 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
             return JSONResponse(status_code=200, content=clean_data)
         except Exception as e:
             traceback.print_exc()
-        return JSONResponse(status_code=500, content={"error": str(e)})
+            return JSONResponse(status_code=500, content={"error": str(e)})
             
     # For all other routes, pass through normally
     return await call_next(request)
