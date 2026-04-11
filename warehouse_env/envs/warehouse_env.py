@@ -130,6 +130,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         super().reset(seed=seed)
         if seed is not None:
             self._np_random = np.random.default_rng(seed)
+            np.random.seed(seed)  # Fallback for third-party libraries
         elif self._np_random is None:
             self._np_random = np.random.default_rng()
 
@@ -314,7 +315,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
             + congestion_penalty
             + wait_time_penalty
         )
-        self._cumulative_reward += reward
+        
 
         # ------ 6. Termination ------
         all_done = (
@@ -330,14 +331,14 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         if terminated and not truncated:
             finish_bonus = 5.0
             reward += finish_bonus
-
+        self._cumulative_reward += reward
         # ------ 7. Metrics ------
         self._metrics["orders_completed"] = self.orders_completed
         self._metrics["avg_fulfillment_time"] = (
             self.total_fulfillment_time / max(self.orders_completed, 1)
         )
         self._metrics["worker_utilization"] = float(
-            np.mean(self.worker_work_time) / max(self.current_step, 1)
+            np.clip(np.mean(self.worker_work_time) / max(self.current_step, 1), 0.0, 1.0)
         )
         self._metrics["total_reward"] = self._cumulative_reward
 
@@ -353,6 +354,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
             "congestion_penalty": round(congestion_penalty, 4),
             "wait_time_penalty": round(wait_time_penalty, 4),
             "finish_bonus": round(finish_bonus, 4),
+            "total":round(reward,4),
         }
 
         # ── Explainability ──
@@ -373,7 +375,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         # ── Episode summary (on termination) ──
         if terminated or truncated:
             avg_ft = self.total_fulfillment_time / max(self.orders_completed, 1)
-            util = float(np.mean(self.worker_work_time) / max(self.current_step, 1))
+            util = float(np.clip(np.mean(self.worker_work_time) / max(self.current_step, 1), 0.0, 1.0))
             info["episode_summary"] = {
                 "orders_completed": self.orders_completed,
                 "orders_generated": self.total_orders_generated,
@@ -385,6 +387,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
                 "mode": self.mode,
                 "terminated": terminated,
                 "truncated": truncated,
+                "queue_overflow_count": self._queue_overflow_count,
             }
 
         if self.render_mode == "human":
@@ -399,7 +402,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         elif self.render_mode == "human":
             print(output)
 
-    def state(self) -> dict:
+    def get_full_state_dict(self) -> dict:
         """Return a full snapshot of the internal environment state.
 
         Used by the OpenEnv state() API for debugging and grading.
@@ -482,7 +485,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
                 self.total_fulfillment_time / max(self.orders_completed, 1)
             ),
             "worker_utilization": float(
-                np.mean(self.worker_work_time) / max(self.current_step, 1)
+                np.clip(np.mean(self.worker_work_time) / max(self.current_step, 1), 0.0, 1.0)
             ),
             "worker_busy_times": self.worker_busy.tolist(),
             "mode": self.mode,

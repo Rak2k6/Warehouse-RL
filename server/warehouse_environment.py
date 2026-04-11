@@ -51,12 +51,12 @@ class WarehouseEnvironment(MCPEnvironment):
                 Dictionary with processing results, reward breakdown, and updated state.
             """
             obs, reward, terminated, truncated, info = self.gym_env.step(order_id)
-            self._state.step_count += 1
             return {
                 "reward": float(reward),
                 "observation": obs.tolist(),
                 "terminated": bool(terminated),
                 "truncated": bool(truncated),
+                "done": bool(terminated or truncated),
                 "info": info,
                 "decision_reason": info.get("decision_reason", ""),
                 "reward_breakdown": info.get("reward_breakdown", {}),
@@ -74,12 +74,12 @@ class WarehouseEnvironment(MCPEnvironment):
             obs, reward, terminated, truncated, info = self.gym_env.step(
                 self.gym_env.max_queue
             )
-            self._state.step_count += 1
             return {
                 "reward": float(reward),
                 "observation": obs.tolist(),
                 "terminated": bool(terminated),
                 "truncated": bool(truncated),
+                "done": bool(terminated or truncated),
                 "info": info,
                 "decision_reason": info.get("decision_reason", ""),
                 "reward_breakdown": info.get("reward_breakdown", {}),
@@ -88,59 +88,53 @@ class WarehouseEnvironment(MCPEnvironment):
         super().__init__(mcp)
         self._state = State(episode_id=str(uuid4()), step_count=0)
 
-    def reset(
-        self,
-        seed: Optional[int] = None,
-        episode_id: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Observation:
-        """Reset the internal Gym env and return as OpenEnv Observation."""
+    def reset(self, seed=None, episode_id=None, **kwargs):
         obs_vec, info = self.gym_env.reset(seed=seed)
-        self._state = State(
-            episode_id=episode_id or str(uuid4()),
-            step_count=0,
-        )
-
+        self._state = State(episode_id=episode_id or str(uuid4()), step_count=0)
+        # Return obs_vec directly if called as Gym env,
+        # or embed it in Observation for MCP
         return Observation(
             done=False,
-            reward=0.0,
+        reward=0.0,
+        metadata={
+            "observation": obs_vec.tolist(),  # ← ADD THIS
+            "status": "ready",
+            "info": info,
+            "mode": self.gym_env.mode,
+            "description": (
+                f"Warehouse environment reset. Mode: {self.gym_env.mode}. "
+                "Queue and workers initialized."
+            ),
+        },
+    )
+
+    def _step_impl(self, action: Action, timeout_s=None, **kwargs) -> Observation:
+        # Extract integer action from CallToolAction or raw int
+        if hasattr(action, 'tool_name'):
+            if action.tool_name == "wait_step":
+                gym_action = self.gym_env.max_queue
+            else:
+                gym_action = int(action.tool_input.get("order_id", self.gym_env.max_queue))
+        else:
+            gym_action = int(action)
+
+        obs, reward, terminated, truncated, info = self.gym_env.step(gym_action)
+        done = bool(terminated or truncated)
+
+        return Observation(
+            done=done,
+            reward=float(reward),
             metadata={
-                "status": "ready",
+                "observation": obs.tolist(),
                 "info": info,
-                "mode": self.gym_env.mode,
-                "description": (
-                    "Warehouse environment reset. "
-                    f"Mode: {self.gym_env.mode}. "
-                    "Queue and workers initialized."
-                ),
+                "decision_reason": info.get("decision_reason", ""),
+                "reward_breakdown": info.get("reward_breakdown", {}),
             },
-        )
+    )
 
-    def _step_impl(
-        self,
-        action: Action,
-        timeout_s: Optional[float] = None,
-        **kwargs: Any,
-    ) -> Observation:
-        """
-        Handle legacy actions if needed (routes to MCP core standard).
-        """
-        return Observation(
-            done=False,
-            reward=0.0,
-            metadata={
-                "error": "Direct actions not supported. Use CallToolAction for MCP tools."
-            },
-        )
-
-    def step(
-        self,
-        action: Action,
-        timeout_s: Optional[float] = None,
-        **kwargs: Any,
-    ) -> Observation:
-        """Expose step with state tracking."""
-        return super().step(action, timeout_s=timeout_s, **kwargs)
+    # DELETE this entire method from WarehouseEnvironment:
+   # def step(self, action, timeout_s=None, **kwargs):
+        #return super().step(action, timeout_s=timeout_s, **kwargs)
 
     @property
     def state(self) -> State:
@@ -153,24 +147,27 @@ class WarehouseEnvironment(MCPEnvironment):
         This provides the complete environment snapshot for debugging,
         grading, and the OpenEnv state() specification.
         """
-        internal = self.gym_env.get_state()
-        return WarehouseState(
-            episode_id=self._state.episode_id,
-            step_count=self._state.step_count,
-            mode=internal["mode"],
-            worker_busy=internal["worker_busy"],
-            worker_work_time=internal["worker_work_time"],
-            queue_proc_time=internal["queue_proc_time"],
-            queue_wait_time=internal["queue_wait_time"],
-            queue_priority=internal["queue_priority"],
-            total_orders_generated=internal["total_orders_generated"],
-            orders_completed=internal["orders_completed"],
-            priority_orders_completed=internal["priority_orders_completed"],
-            total_fulfillment_time=internal["total_fulfillment_time"],
-            total_wait_time=internal["total_wait_time"],
-            cumulative_reward=internal["cumulative_reward"],
-            num_workers=internal["num_workers"],
-            max_queue=internal["max_queue"],
-            max_orders=internal["max_orders"],
-            max_steps=internal["max_steps"],
-        )
+        try:
+            internal = self.gym_env.get_full_state_dict()
+            return WarehouseState(
+                episode_id=self._state.episode_id,
+                step_count=self._state.step_count,
+                mode=internal["mode"],
+                worker_busy=internal["worker_busy"],
+                worker_work_time=internal["worker_work_time"],
+                queue_proc_time=internal["queue_proc_time"],
+                queue_wait_time=internal["queue_wait_time"],
+                queue_priority=internal["queue_priority"],
+                total_orders_generated=internal["total_orders_generated"],
+                orders_completed=internal["orders_completed"],
+                priority_orders_completed=internal["priority_orders_completed"],
+                total_fulfillment_time=internal["total_fulfillment_time"],
+                total_wait_time=internal["total_wait_time"],
+                cumulative_reward=internal["cumulative_reward"],
+                num_workers=internal["num_workers"],
+                max_queue=internal["max_queue"],
+                max_orders=internal["max_orders"],
+                max_steps=internal["max_steps"],
+            )
+        except Exception as e:
+            raise RuntimeError(f"get_full_state failed: {e}") from e
