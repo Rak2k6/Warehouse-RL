@@ -33,8 +33,8 @@ RUN pip install --no-cache-dir .
 EXPOSE 8000 7860
 
 # Simple curl-based fallback healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/ || curl -f http://localhost:7860/ || exit 1
+#HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    #CMD curl -f http://localhost:8000/ || curl -f http://localhost:7860/ || exit 1
 # Default: start the MCP server
 ENV PORT=8000
-CMD ["python", "-m", "server.app"]
+CMD ["python", "server/app.py"]
