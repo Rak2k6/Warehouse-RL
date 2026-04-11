@@ -5,6 +5,9 @@ import time
 import sys
 import os
 
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 print("\n--- 1. SERVER START TEST ---")
 env = os.environ.copy()
 env["PORT"] = "8000"

@@ -1,10 +1,18 @@
+import os
 import requests
+from openai import OpenAI
 
 BASE_URL = "http://localhost:7860"
 
 def main():
     try:
         print("[START] task=warehouse env=openenv model=baseline")
+
+        # Initialize client exactly as required
+        client = OpenAI(
+            base_url=os.environ["API_BASE_URL"],
+            api_key=os.environ["API_KEY"]
+        )
 
         res = requests.post(f"{BASE_URL}/reset", json={})
         data = res.json()
@@ -15,13 +23,28 @@ def main():
         rewards = []
 
         while not done and step < 50:
-            action = 0
+            prompt = f"Observation: {obs}. What is the next action? Reply with a single integer."
+            
+            # Make the LLM call safely
+            try:
+                response = client.chat.completions.create(
+                    model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0
+                )
+                action = int(response.choices[0].message.content.strip())
+            except Exception:
+                action = 0
 
             res = requests.post(
                 f"{BASE_URL}/step",
                 json={"action": action}
             )
             data = res.json()
+
+            # Update observation for the next prompt if available
+            if "observation" in data:
+                obs = data["observation"]
 
             reward = data.get("reward", 0.0)
             done = data.get("done", False)
