@@ -20,7 +20,7 @@ app = create_app(
 )
 
 # Global manual instance for direct HTTP validation routing
-env_instance = WarehouseEnvironment()
+env_instance = None
 
 # Strip out OpenEnv's restrictive paths so our custom routes take priority
 app.router.routes = [route for route in app.router.routes if getattr(route, "path", "") not in ["/reset", "/step", "/state"]]
@@ -62,7 +62,14 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
             body = {}
         
         try:
-            obs = env_instance.reset(episode_id=body.get("episode_id") if isinstance(body, dict) else None)
+            global env_instance
+
+            if env_instance is None:
+                env_instance = WarehouseEnvironment()
+
+            obs = env_instance.reset(
+                episode_id=body.get("episode_id") if isinstance(body, dict) else None
+            )
             data = obs.model_dump() if hasattr(obs, "model_dump") else obs
             clean_data = deep_serialize(data)
             return JSONResponse(status_code=200, content=clean_data)
@@ -72,6 +79,8 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
 
     elif request.url.path == "/step" and request.method == "POST":
         try:
+            if env_instance is None:
+                return JSONResponse(status_code=400, content={"error": "Environment not initialized. Call /reset first."})
             raw_body = await request.body()
             body = json.loads(raw_body) if raw_body else {}
         except Exception:
@@ -97,12 +106,18 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
             
     elif request.url.path == "/state" and request.method == "GET":
         try:
+            if env_instance is None:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Environment not initialized. Call /reset first."}
+                )
+
             data = env_instance.gym_env.get_full_state_dict()
             clean_data = deep_serialize(data)
             return JSONResponse(status_code=200, content=clean_data)
         except Exception as e:
             traceback.print_exc()
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"error": str(e)})
             
     # For all other routes, pass through normally
     return await call_next(request)
