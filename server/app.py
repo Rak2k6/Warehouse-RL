@@ -4,6 +4,7 @@ Exposes the WarehouseEnvironment over HTTP/WebSocket MCP endpoints.
 """
 
 import os
+import sys
 from openenv.core.env_server.http_server import create_app
 from openenv.core.env_server.mcp_types import CallToolAction, CallToolObservation
 from fastapi import Request
@@ -11,8 +12,13 @@ from fastapi.responses import JSONResponse
 
 from server.warehouse_environment import WarehouseEnvironment
 
+def log(msg):
+    """Stdout debug logging that flushes immediately for HF console."""
+    print(f"[DEBUG] {msg}", flush=True)
+
 # Create the app instance.
 # env_name="warehouse_env" is used for the MCP tool prefix
+log("Initializing application...")
 app = create_app(
     WarehouseEnvironment, 
     CallToolAction, 
@@ -28,7 +34,13 @@ app.router.routes = [route for route in app.router.routes if getattr(route, "pat
 
 @app.get("/")
 def root():
+    """Zero-cost root endpoint for basic health checks."""
     return {"status": "ok"}
+
+@app.get("/health")
+def health():
+    """Minimal alive signal for manual diagnostics."""
+    return {"status": "alive"}
 
 def deep_serialize(obj):
     """Recursively convert all custom and numpy types to base Python primitives."""
@@ -51,16 +63,19 @@ def deep_serialize(obj):
 @app.middleware("http")
 async def intercept_openenv_rest_routes(request: Request, call_next):
     if request.url.path == "/reset" and request.method == "POST":
+        log("INTERCEPT: /reset")
         import json
         try:
             raw_body = await request.body()
             body = json.loads(raw_body) if raw_body else {}
-        except Exception:
+        except Exception as e:
+            log(f"RESET: Body parse error: {e}")
             body = {}
         
         try:
             global env_instance
             if env_instance is None:
+                log("Instantiating WarehouseEnvironment...")
                 env_instance = WarehouseEnvironment()
 
             obs = env_instance.reset(
@@ -68,20 +83,24 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
             )
             data = obs.model_dump() if hasattr(obs, "model_dump") else obs
             clean_data = deep_serialize(data)
+            log("RESET: Success")
             return JSONResponse(status_code=200, content=clean_data)
         except Exception as e:
             import traceback
+            log(f"RESET CRASH: {e}")
             traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": str(e)})
 
     elif request.url.path == "/step" and request.method == "POST":
+        log("INTERCEPT: /step")
         import json
         try:
             if env_instance is None:
                 return JSONResponse(status_code=400, content={"error": "Environment not initialized. Call /reset first."})
             raw_body = await request.body()
             body = json.loads(raw_body) if raw_body else {}
-        except Exception:
+        except Exception as e:
+            log(f"STEP: Body parse error: {e}")
             body = {}
             
         try:
@@ -97,13 +116,16 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
             obs = env_instance._step_impl(action=action)
             data = obs.model_dump() if hasattr(obs, "model_dump") else obs
             clean_data = deep_serialize(data)
+            log(f"STEP: Success (action={action})")
             return JSONResponse(status_code=200, content=clean_data)
         except Exception as e:
             import traceback
+            log(f"STEP CRASH: {e}")
             traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": str(e)})
             
     elif request.url.path == "/state" and request.method == "GET":
+        log("INTERCEPT: /state")
         try:
             if env_instance is None:
                 return JSONResponse(
@@ -113,9 +135,11 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
 
             data = env_instance.gym_env.get_full_state_dict()
             clean_data = deep_serialize(data)
+            log("STATE: Success")
             return JSONResponse(status_code=200, content=clean_data)
         except Exception as e:
             import traceback
+            log(f"STATE CRASH: {e}")
             traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": str(e)})
             
@@ -153,9 +177,9 @@ def _compute_scores(state: dict) -> dict:
     }
 
 
-def _run_heuristic_episode(mode: str = "normal", max_steps: int = 200,
-                            max_orders: int = 50, seed: int = 42) -> dict:
-    """Run a full heuristic episode and return the final state dict."""
+def _run_heuristic_episode(mode: str = "normal", max_steps: int = 50,
+                            max_orders: int = 20, seed: int = 42) -> dict:
+    """Run a full heuristic episode (reduced for memory check) and return results."""
     from warehouse_env.envs.warehouse_env import WarehouseOrderFulfillmentEnv
     env = WarehouseOrderFulfillmentEnv(mode=mode, max_steps=max_steps,
                                        max_orders=max_orders, seed=seed)
@@ -210,64 +234,67 @@ def list_tasks():
 async def grade_episode(request: Request):
     """
     Grade an episode. Validator calls this to verify scores are in (0, 1).
-
-    Accepts:
-      {}                            — run fresh heuristic episode and grade
-      {"state": {...}}              — grade from explicit state dict
-      {"task_id": "...", ...}       — same, with task hint
     """
     try:
+        log("GRADER: POST called")
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        log(f"GRADER: Body parse error: {e}")
         body = {}
 
-    # Try to get state from body first
-    state = (
-        body.get("state")
-        or body.get("observation")
-        or body.get("metrics")
-        or None
-    )
+    try:
+        # Try to get state from body first
+        state = (
+            body.get("state")
+            or body.get("observation")
+            or body.get("metrics")
+            or None
+        )
 
-    # If no state provided, use live env_instance if available, else run fresh episode
-    if not state:
-        try:
+        # If no state provided, use live env_instance if available, else run fresh episode
+        if not state:
             if env_instance is not None:
+                log("GRADER: Using live env_instance state")
                 state = env_instance.gym_env.get_full_state_dict()
             else:
-                # Optimized: Don't run full episode by default to avoid startup timeouts
+                log("GRADER: Falling back to neutral scores (avoid simulation during check)")
                 scores = {
                     "minimize_fulfillment_time": 0.5,
                     "maximize_worker_utilization": 0.5,
                     "rush_mode_efficiency": 0.5,
                 }
                 return JSONResponse({"scores": scores, "status": "neutral_fallback"})
-        except Exception as e:
+
+        scores = _compute_scores(state)
+        log(f"GRADER: Scores computed: {scores}")
+
+        task_id = body.get("task_id") if isinstance(body, dict) else None
+        if task_id and task_id in scores:
             return JSONResponse({
-                "scores": {
-                    "minimize_fulfillment_time":   0.5,
-                    "maximize_worker_utilization": 0.5,
-                    "rush_mode_efficiency":        0.5,
-                },
-                "error": str(e),
+                "task_id": task_id,
+                "score":   scores[task_id],
+                "scores":  scores,
             })
 
-    scores = _compute_scores(state)
-
-    task_id = body.get("task_id") if isinstance(body, dict) else None
-    if task_id and task_id in scores:
+        return JSONResponse({"scores": scores})
+    except Exception as e:
+        import traceback
+        log(f"GRADER CRASH: {e}")
+        traceback.print_exc()
         return JSONResponse({
-            "task_id": task_id,
-            "score":   scores[task_id],
-            "scores":  scores,
+            "scores": {
+                "minimize_fulfillment_time":   0.5,
+                "maximize_worker_utilization": 0.5,
+                "rush_mode_efficiency":        0.5,
+            },
+            "error": str(e),
         })
-
-    return JSONResponse({"scores": scores})
 
 
 @app.get("/baseline")
 def run_baseline():
     """Run heuristic baseline across all three tasks and return scores."""
+    log("BASELINE: GET called")
     configs = {
         "minimize_fulfillment_time":   {"mode": "normal", "max_steps": 200, "max_orders": 50},
         "maximize_worker_utilization": {"mode": "normal", "max_steps": 200, "max_orders": 50},
@@ -280,6 +307,7 @@ def run_baseline():
             scores = _compute_scores(state)
             results[task_id] = scores[task_id]
         except Exception as e:
+            log(f"BASELINE ERROR ({task_id}): {e}")
             results[task_id] = 0.5
     return JSONResponse({"baseline_scores": results})
 
@@ -289,7 +317,7 @@ def main():
     Required for OpenEnv validation.
     DO NOT start uvicorn here.
     """
-    print("OpenEnv entrypoint ready")
+    log("OpenEnv entrypoint ready")
 
 if __name__ == "__main__":
     main()

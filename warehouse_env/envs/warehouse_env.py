@@ -70,9 +70,9 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
     def __init__(
         self,
         num_workers: int = 4,
-        max_queue: int = 20,
-        max_orders: int = 50,
-        max_steps: int = 200,
+        max_queue: int = 10,
+        max_orders: int = 20,
+        max_steps: int = 50,
         order_time_range: tuple[int, int] = (1, 8),
         new_order_prob: float = 0.4,
         priority_prob: float = 0.2,
