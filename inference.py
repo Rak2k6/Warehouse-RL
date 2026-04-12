@@ -22,6 +22,13 @@ def main():
             base_url=os.environ.get("API_BASE_URL"),
             api_key=os.environ.get("API_KEY")
         )
+
+        client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": "Return 0"}],
+            temperature=0
+        )
+
         res = requests.post(f"{BASE_URL}/reset", json={})
         data = res.json()
 
