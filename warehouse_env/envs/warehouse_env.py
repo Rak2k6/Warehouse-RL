@@ -417,7 +417,9 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
                     "queue_overflow_count": self._queue_overflow_count,
                 })
 
-        info["episode_summary"] = summaries
+        info["episode_summary"] = {
+            "tasks": summaries
+        }
 
         if self.render_mode == "human":
             self.render()
