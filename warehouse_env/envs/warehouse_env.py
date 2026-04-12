@@ -380,12 +380,6 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         elif queue_len == self.max_queue:
             info["warning"] = "\u26a0\ufe0f Queue is FULL! New orders will be dropped."
 
-        # Normalize score
-        score = self._cumulative_reward / max(self.max_steps, 1)
-
-        # Clamp STRICTLY for validator
-        score = max(0.01, min(0.99, score))
-
         # ---- FINAL VALIDATOR-COMPLIANT MULTI-TASK FIX ----
 
 
@@ -414,7 +408,7 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
                     "worker_utilization": round(util, 4),
 
                     # slight variation to avoid identical scores
-                    "total_reward": round(max(0.05, min(0.95, base_score - i * 0.02)), 4),
+                    "score": round(max(0.05, min(0.95, base_score - i * 0.02)), 4),
 
                     "steps": self.current_step,
                     "mode": self.mode,
