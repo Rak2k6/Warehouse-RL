@@ -414,8 +414,6 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         }
         summaries.append({
             "task_id": task1_output["task_id"],
-            "output": task1_output,
-            "grader": task1_grader,
             "score": round(max(0.05, min(0.95, task1_output["completion_ratio"])), 4),
         })
 
@@ -434,8 +432,6 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         }
         summaries.append({
             "task_id": task2_output["task_id"],
-            "output": task2_output,
-            "grader": task2_grader,
             "score": round(max(0.05, min(0.95, util)), 4),
         })
 
@@ -458,8 +454,6 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         }
         summaries.append({
             "task_id": task3_output["task_id"],
-            "output": task3_output,
-            "grader": task3_grader,
             "score": round(speed_score, 4),
         })
 
