@@ -3,7 +3,6 @@ FastAPI application for the Warehouse Environment.
 Exposes the WarehouseEnvironment over HTTP/WebSocket MCP endpoints.
 """
 
-import uvicorn
 import os
 from openenv.core.env_server.http_server import create_app
 from openenv.core.env_server.mcp_types import CallToolAction, CallToolObservation
@@ -27,7 +26,7 @@ app.router.routes = [route for route in app.router.routes if getattr(route, "pat
 
 @app.get("/")
 def root():
-    return {"message": "Warehouse RL OpenEnv is running"}
+    return {"status": "ok"}
 
 import json
 import numpy as np
@@ -122,11 +121,4 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
     # For all other routes, pass through normally
     return await call_next(request)
     
-def main():
-    """Start-up script for direct execution."""
-    print("Starting Warehouse RL Server on http://0.0.0.0:7860")
-    port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port)
 
-if __name__ == "__main__":
-    main()
