@@ -26,7 +26,7 @@ def main():
         client.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": "Return 0"}],
-            temperature=0
+            max_tokens=5
         )
 
         res = requests.post(f"{BASE_URL}/reset", json={})
@@ -51,8 +51,12 @@ def main():
                     temperature=0
                 )
 
-                action = int(response.choices[0].message.content.strip())
+                content = response.choices[0].message.content.strip()
 
+                try:
+                    action = int(content)
+                except:
+                    action = 0
             except Exception as e:
                 print(f"DEBUG: LLM failed: {e}")
                 action = 0
