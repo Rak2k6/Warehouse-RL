@@ -6,19 +6,21 @@ BASE_URL = "http://localhost:7860"
 
 def main():
     try:
+
+        print("[START] task=warehouse env=openenv model=baseline",flush=True)
+
         # Debug Logs
-        api_base = os.environ["API_BASE_URL"]
-        api_key = os.environ["API_KEY"]
+        api_base = os.environ.get("API_BASE_URL")
+        api_key = os.environ.get("API_KEY")
         model_name = os.environ["MODEL_NAME"]
         
 
-        print("[START] task=warehouse env=openenv model=baseline",flush=True)
 
         # Support Dual Mode: Initialize client only if env vars exist
         # 🔥 FORCE client creation
         client = OpenAI(
-            base_url=api_base,
-            api_key=api_key
+            base_url=os.environ.get("API_BASE_URL"),
+            api_key=os.environ.get("API_KEY")
         )
         res = requests.post(f"{BASE_URL}/reset", json={})
         data = res.json()
@@ -45,6 +47,7 @@ def main():
                 action = int(response.choices[0].message.content.strip())
 
             except Exception as e:
+                print(f"DEBUG: LLM failed: {e}")
                 action = 0
         
             res = requests.post(
