@@ -7,7 +7,7 @@ description: >
 version: 1.0.0
 type: mcp
 entry_point: server.app:app
-port: 8000
+port: 7860
 docker_image: warehouse-env:latest
 
 models:

@@ -8,3 +8,5 @@ uvicorn>=0.24.0
 requests>=2.31.0
 groq>=0.4.0
 openai>=1.0.0
+fastmcp>=0.1.0
+openenv-core[core] @ git+https://github.com/meta-pytorch/OpenEnv.git@v0.2.3
