@@ -2,7 +2,8 @@
 Task Definitions & Graders for the Warehouse Order Fulfillment Environment
 ===========================================================================
 Defines 3 evaluation tasks with deterministic graders that return
-scores strictly between 0.0 and 1.0.
+scores STRICTLY between 0.0 and 1.0 (exclusive) as required by the
+OpenEnv Phase 2 validator.
 
 Tasks:
   1. Easy   — Minimize average fulfillment time
@@ -18,96 +19,145 @@ from typing import Any, Callable, Optional
 from .models import EpisodeResult
 
 
-# ── Grader Functions ─────────────────────────────────────────────────
+# ── Core clamp — NEVER returns exactly 0.0 or 1.0 ───────────────────────────
 
-def grade_fulfillment_time(result: EpisodeResult) -> float:
+def _clamp(score: float) -> float:
+    """Return score strictly in (0.001, 0.999). Validator rejects 0.0 and 1.0."""
+    return round(float(max(0.001, min(0.999, score))), 4)
+
+
+# ── Internal metric extractor — accepts EpisodeResult OR env/state dict ──────
+
+def _metrics(source) -> dict:
+    """
+    Normalise inputs so graders work whether the validator passes:
+      - an EpisodeResult (used by evaluate.py / run_task_grader)
+      - a live env instance  (has get_full_state_dict())
+      - a raw state dict
+    """
+    if isinstance(source, EpisodeResult):
+        return {
+            "orders_completed":       max(source.orders_completed, 0),
+            "orders_generated":       max(source.orders_generated, 1),
+            "avg_ft":                 float(source.avg_fulfillment_time),
+            "utilization":            float(max(0.0, min(1.0, source.worker_utilization))),
+            "steps":                  max(source.steps, 1),
+        }
+
+    # env instance or dict
+    if hasattr(source, "get_full_state_dict"):
+        s = source.get_full_state_dict()
+    elif isinstance(source, dict):
+        s = source
+    else:
+        # last resort: try attribute access
+        s = vars(source)
+
+    import numpy as np
+    orders_completed       = max(int(s.get("orders_completed", 0)), 0)
+    orders_generated       = max(int(s.get("total_orders_generated", 1)), 1)
+    total_fulfillment_time = float(s.get("total_fulfillment_time", 0.0))
+    worker_work_time       = s.get("worker_work_time", [0.0])
+    step_count             = max(int(s.get("step_count", s.get("current_step", 1))), 1)
+
+    avg_ft = total_fulfillment_time / max(orders_completed, 1)
+    utilization = float(np.clip(np.mean(worker_work_time) / step_count, 0.0, 1.0))
+
+    return {
+        "orders_completed": orders_completed,
+        "orders_generated": orders_generated,
+        "avg_ft":           avg_ft,
+        "utilization":      utilization,
+        "steps":            step_count,
+    }
+
+
+# ── Grader Functions ─────────────────────────────────────────────────────────
+
+def grade_fulfillment_time(result) -> float:
     """Task 1 (Easy): Minimize average fulfillment time.
 
-    Score mapping:
-      - avg_ft <= 2.0  → 1.0  (near-optimal)
-      - avg_ft >= 20.0 → 0.0  (very poor)
-      - Linear interpolation between
+    Score mapping (linear):
+      avg_ft <= 2.0  → approaches 0.999
+      avg_ft >= 20.0 → approaches 0.001
+    Returns a float STRICTLY in (0.001, 0.999).
     """
-    if result.orders_completed == 0:
-        return 0.0
+    m = _metrics(result)
+    if m["orders_completed"] == 0:
+        return 0.001
 
-    avg_ft = result.avg_fulfillment_time
-    best = 2.0   # near-theoretical minimum
-    worst = 20.0  # very poor performance
+    avg_ft = m["avg_ft"]
+    BEST   = 2.0
+    WORST  = 20.0
 
-    score = 1.0 - (avg_ft - best) / (worst - best)
-    return round(max(0.0, min(1.0, score)), 4)
+    raw = 1.0 - (avg_ft - BEST) / (WORST - BEST)
+    return _clamp(raw)
 
 
-def grade_worker_utilization(result: EpisodeResult) -> float:
+def grade_worker_utilization(result) -> float:
     """Task 2 (Medium): Maximize worker utilization.
 
-    Score = worker_utilization (already 0-1).
-    Clamped and rounded for safety.
+    Score = mean worker utilization (fraction of time busy).
+    Returns a float STRICTLY in (0.001, 0.999).
     """
-    if result.steps == 0:
-        return 0.0
+    m = _metrics(result)
+    if m["steps"] == 0:
+        return 0.001
 
-    score = result.worker_utilization
-    return round(max(0.0, min(1.0, score)), 4)
+    return _clamp(m["utilization"])
 
 
-def grade_rush_mode(result: EpisodeResult) -> float:
+def grade_rush_mode(result) -> float:
     """Task 3 (Hard): Handle high-load (rush mode) efficiently.
 
-    Composite score:
-      40% — completion rate (orders_completed / orders_generated)
-      30% — speed score (inverse of fulfillment time, same scale as task 1)
-      30% — utilization score (same as task 2)
+    Composite:
+      40% — completion rate  (orders_completed / orders_generated)
+      30% — speed score      (same scale as task 1, rush worst=15 ticks)
+      30% — utilization
 
-    Designed so that only a well-tuned policy scores > 0.7.
+    Returns a float STRICTLY in (0.001, 0.999).
     """
-    if result.orders_generated == 0:
-        return 0.0
+    import numpy as np
 
-    # Completion rate
-    completion_rate = result.orders_completed / max(result.orders_generated, 1)
+    m = _metrics(result)
+    if m["orders_generated"] == 0:
+        return 0.001
 
-    # Speed score (same as task 1)
-    if result.orders_completed > 0:
-        avg_ft = result.avg_fulfillment_time
-        speed_score = 1.0 - (avg_ft - 2.0) / (20.0 - 2.0)
-        speed_score = max(0.0, min(1.0, speed_score))
-    else:
-        speed_score = 0.0
+    completion_rate = m["orders_completed"] / m["orders_generated"]
 
-    # Utilization
-    utilization = max(0.0, min(1.0, result.worker_utilization))
+    WORST_FT = 15.0   # rush mode has shorter proc times, so tighter bound
+    speed_score = float(np.clip(1.0 - m["avg_ft"] / WORST_FT, 0.0, 1.0))
 
-    # Composite
-    score = 0.4 * completion_rate + 0.3 * speed_score + 0.3 * utilization
-    return round(max(0.0, min(1.0, score)), 4)
+    utilization = m["utilization"]
+
+    raw = 0.4 * completion_rate + 0.3 * speed_score + 0.3 * utilization
+    return _clamp(raw)
 
 
-# ── Task Definition ──────────────────────────────────────────────────
+# ── Task Definition ──────────────────────────────────────────────────────────
 
 @dataclass
 class Task:
     """A single evaluation task with its grader."""
     name: str
     description: str
-    difficulty: str  # "easy", "medium", "hard"
-    grader: Callable[[EpisodeResult], float]
+    difficulty: str          # "easy", "medium", "hard"
+    grader: Callable[[Any], float]
     env_config: dict[str, Any] = field(default_factory=dict)
     max_steps: int = 200
     num_episodes: int = 10
     seed: int = 42
 
 
-# ── Task Registry ────────────────────────────────────────────────────
+# ── Task Registry ────────────────────────────────────────────────────────────
 
 TASKS: list[Task] = [
     Task(
         name="minimize_fulfillment_time",
         description=(
             "Minimize the average order fulfillment time. "
-            "Score 1.0 = avg fulfillment ≤ 2.0 ticks; "
-            "Score 0.0 = avg fulfillment ≥ 20.0 ticks."
+            "Score 0.999 = avg fulfillment ≤ 2.0 ticks; "
+            "Score 0.001 = avg fulfillment ≥ 20.0 ticks."
         ),
         difficulty="easy",
         grader=grade_fulfillment_time,
@@ -126,7 +176,7 @@ TASKS: list[Task] = [
         name="maximize_worker_utilization",
         description=(
             "Maximize average worker utilization (fraction of time workers are busy). "
-            "Score = utilization ratio (0.0 to 1.0)."
+            "Score = utilization ratio, strictly in (0.001, 0.999)."
         ),
         difficulty="medium",
         grader=grade_worker_utilization,
@@ -145,8 +195,8 @@ TASKS: list[Task] = [
         name="rush_mode_efficiency",
         description=(
             "Handle high-load rush mode efficiently. "
-            "Composite score: 40% completion rate + 30% speed + 30% utilization. "
-            "Rush mode has 70% order arrival probability and shorter processing times."
+            "Composite: 40% completion rate + 30% speed + 30% utilization. "
+            "Rush mode: 70% arrival prob, shorter processing times."
         ),
         difficulty="hard",
         grader=grade_rush_mode,
@@ -172,6 +222,6 @@ def get_task(name: str) -> Optional[Task]:
     return None
 
 
-def run_task_grader(task: Task, result: EpisodeResult) -> float:
+def run_task_grader(task: Task, result) -> float:
     """Run the grader for a task and return the score."""
     return task.grader(result)

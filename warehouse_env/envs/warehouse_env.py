@@ -395,27 +395,73 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         base_score = self.orders_completed / max(self.total_orders_generated, 1)
         base_score = max(0.05, min(0.95, base_score))
 
-        # ✅ CREATE 3 TASKS (MANDATORY)
+        # ✅ CREATE 3 TASKS WITH GRADERS (MANDATORY FOR VALIDATOR)
         summaries = []
 
-        for i in range(3):
-            summaries.append({
-                    "task_id": f"{self.mode}_{i}_{self.current_step}",
-                    "orders_completed": self.orders_completed,
-                    "orders_generated": self.total_orders_generated,
-                    "priority_completed": self.priority_orders_completed,
-                    "avg_fulfillment_time": round(avg_ft, 2),
-                    "worker_utilization": round(util, 4),
+        # Task 1: Order Completion Efficiency
+        task1_output = {
+            "task_id": f"order_completion_{self.mode}_{self.current_step}",
+            "metric": "orders_completed",
+            "value": self.orders_completed,
+            "target": self.total_orders_generated,
+            "completion_ratio": self.orders_completed / max(self.total_orders_generated, 1),
+        }
+        task1_grader = {
+            "type": "ratio",
+            "metric_name": "order_completion_efficiency",
+            "value": task1_output["completion_ratio"],
+            "threshold": 0.7,
+        }
+        summaries.append({
+            "task_id": task1_output["task_id"],
+            "output": task1_output,
+            "grader": task1_grader,
+            "score": round(max(0.05, min(0.95, task1_output["completion_ratio"])), 4),
+        })
 
-                    # slight variation to avoid identical scores
-                    "score": round(max(0.05, min(0.95, base_score - i * 0.02)), 4),
+        # Task 2: Worker Utilization
+        task2_output = {
+            "task_id": f"worker_utilization_{self.mode}_{self.current_step}",
+            "metric": "worker_utilization",
+            "value": round(util, 4),
+            "target": 0.8,
+        }
+        task2_grader = {
+            "type": "utilization",
+            "metric_name": "avg_worker_utilization",
+            "value": util,
+            "threshold": 0.5,
+        }
+        summaries.append({
+            "task_id": task2_output["task_id"],
+            "output": task2_output,
+            "grader": task2_grader,
+            "score": round(max(0.05, min(0.95, util)), 4),
+        })
 
-                    "steps": self.current_step,
-                    "mode": self.mode,
-                    "terminated": terminated,
-                    "truncated": truncated,
-                    "queue_overflow_count": self._queue_overflow_count,
-                })
+        # Task 3: Fulfillment Speed
+        task3_output = {
+            "task_id": f"fulfillment_speed_{self.mode}_{self.current_step}",
+            "metric": "avg_fulfillment_time",
+            "value": round(avg_ft, 2),
+            "priority_orders_completed": self.priority_orders_completed,
+            "mode": self.mode,
+        }
+        # Normalize fulfillment time (lower is better)
+        max_acceptable_time = self.order_time_range[1] * 3.0
+        speed_score = max(0.05, min(0.95, 1.0 - (avg_ft / max_acceptable_time)))
+        task3_grader = {
+            "type": "speed",
+            "metric_name": "fulfillment_speed_score",
+            "value": speed_score,
+            "threshold": 0.6,
+        }
+        summaries.append({
+            "task_id": task3_output["task_id"],
+            "output": task3_output,
+            "grader": task3_grader,
+            "score": round(speed_score, 4),
+        })
 
         info["episode_summary"] = {
             "tasks": summaries
