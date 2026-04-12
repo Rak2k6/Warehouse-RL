@@ -37,4 +37,4 @@ EXPOSE 8000 7860
     #CMD curl -f http://localhost:8000/ || curl -f http://localhost:7860/ || exit 1
 # Default: start the MCP server
 ENV PORT=8000
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn server.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
