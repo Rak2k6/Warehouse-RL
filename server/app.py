@@ -122,3 +122,12 @@ async def intercept_openenv_rest_routes(request: Request, call_next):
     return await call_next(request)
     
 
+def main():
+    """
+    Required for OpenEnv validation.
+    DO NOT start uvicorn here.
+    """
+    print("OpenEnv entrypoint ready")
+
+if __name__ == "__main__":
+    main()
