@@ -316,6 +316,9 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
             + wait_time_penalty
         )
         
+        # Mandatory clamp for OpenEnv Phase 2 validation
+        reward = max(0.01, min(0.99, reward))
+        
 
         # ------ 6. Termination ------
         all_done = (
@@ -331,7 +334,12 @@ class WarehouseOrderFulfillmentEnv(gym.Env):
         if terminated and not truncated:
             finish_bonus = 5.0
             reward += finish_bonus
+            # Re-clamp after bonus
+            reward = max(0.01, min(0.99, reward))
+        
         self._cumulative_reward += reward
+        # Clamp cumulative score strictly between 0 and 1
+        self._cumulative_reward = max(0.01, min(0.99, self._cumulative_reward))
         # ------ 7. Metrics ------
         self._metrics["orders_completed"] = self.orders_completed
         self._metrics["avg_fulfillment_time"] = (
