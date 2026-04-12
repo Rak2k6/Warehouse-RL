@@ -7,21 +7,18 @@ BASE_URL = "http://localhost:7860"
 def main():
     try:
         # Debug Logs
-        api_base = os.environ.get("API_BASE_URL")
-        api_key = os.environ.get("API_KEY")
+        api_base = os.environ["API_BASE_URL"]
+        api_key = os.environ["API_KEY"]
         model_name = os.environ["MODEL_NAME"]
         
-        print(f"DEBUG: API_BASE_URL: {api_base}")
-        print(f"DEBUG: API_KEY exists: {bool(api_key)}")
-        print(f"DEBUG: MODEL_NAME: {model_name}")
 
-        print("[START] task=warehouse env=openenv model=baseline")
+        print("[START] task=warehouse env=openenv model=baseline",flush=True)
 
         # Support Dual Mode: Initialize client only if env vars exist
         # 🔥 FORCE client creation
         client = OpenAI(
-            base_url=os.environ.get("API_BASE_URL"),
-            api_key=os.environ.get("API_KEY")
+            base_url=api_base,
+            api_key=api_key
         )
         res = requests.post(f"{BASE_URL}/reset", json={})
         data = res.json()
@@ -48,7 +45,6 @@ def main():
                 action = int(response.choices[0].message.content.strip())
 
             except Exception as e:
-                print(f"DEBUG: LLM failed: {e}")
                 action = 0
         
             res = requests.post(
@@ -64,16 +60,16 @@ def main():
 
             rewards.append(reward)
 
-            print(f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error=null")
+            print(f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error=null",flush=True)
 
             step += 1
 
         score = sum(rewards)
 
-        print(f"[END] success={str(done).lower()} steps={step} score={score:.2f} rewards={','.join([f'{r:.2f}' for r in rewards])}")
+        print(f"[END] success={str(done).lower()} steps={step} score={score:.2f} rewards={','.join([f'{r:.2f}' for r in rewards])}",flush=True)
 
     except Exception as e:
-        print(f"[END] success=false steps=0 score=0.00 rewards= error={e}")
+        print(f"[END] success=false steps=0 score=0.00 rewards= error={e}",flush=True)
 
 if __name__ == "__main__":
     main()
